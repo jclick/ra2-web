@@ -197,17 +197,56 @@ export class ResourceManager {
       }
       
       // 检查是否有效
-      if (entryCount <= 0 || headerSize <= 8) {
-        throw new Error(`无法解析 MIX 文件: entryCount=${entryCount}, headerSize=${headerSize}`)
+      if (headerSize <= 8) {
+        console.warn(`[MIX] ${file.name}: 空的 MIX 文件或无法解析 (entryCount=${entryCount})`)
+        // 创建一个空容器，允许继续
+        const container: MixContainer = {
+          name: file.name,
+          info: {
+            version: 'ts',
+            entryCount: 0,
+            dataSize: 0,
+            entries: [],
+            hasChecksum: (firstWord & MIX_FLAG_CHECKSUM) !== 0,
+            isEncrypted: false,
+          },
+          file,
+          entries: new Map(),
+        }
+        this.mixFiles.set(file.name, container)
+        this.notifyLoading(100, `${file.name} 解析完成 (空文件)`)
+        return
       }
       
       // 步骤3: 读取完整的索引表
       console.log(`[MIX] ${file.name}: 读取索引表, headerSize=${headerSize}`)
-      const indexData = await this.readFileSlice(file, 0, headerSize)
+      const indexData = await this.readFileSlice(file, 0, Math.min(headerSize, file.size))
       
       // 步骤4: 解析索引
-      const parser = new MixParser(indexData)
-      const info = parser.parse()
+      let info: MixFileInfo
+      try {
+        const parser = new MixParser(indexData)
+        info = parser.parse()
+      } catch (parseError) {
+        console.warn(`[MIX] ${file.name}: 解析索引失败，可能是加密或不支持的格式`, parseError)
+        // 创建一个空容器，标记为不支持的格式
+        const container: MixContainer = {
+          name: file.name,
+          info: {
+            version: 'ts',
+            entryCount: 0,
+            dataSize: 0,
+            entries: [],
+            hasChecksum: (firstWord & MIX_FLAG_CHECKSUM) !== 0,
+            isEncrypted: true, // 标记为加密/不支持
+          },
+          file,
+          entries: new Map(),
+        }
+        this.mixFiles.set(file.name, container)
+        this.notifyLoading(100, `${file.name} 跳过 (加密/不支持的格式)`)
+        return
+      }
       
       // 步骤5: 构建ID->Entry映射
       const entries = new Map<number, MixEntry>()
