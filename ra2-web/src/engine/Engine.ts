@@ -37,7 +37,9 @@ export class GameEngine {
   
   // 输入状态
   private isDragging = false
+  private isPanning = false  // 新增：相机平移模式
   private dragStart: { x: number; y: number } | null = null
+  private lastMousePos: { x: number; y: number } | null = null
   // selectionBox: THREE.Mesh | null = null
   
   // 建筑放置模式
@@ -556,12 +558,13 @@ export class GameEngine {
         return
       }
       
-      // 左键 - 选择
+      // 左键 - 选择或框选
       this.isDragging = true
       this.dragStart = { x, y }
+      this.lastMousePos = { x, y }
       
       // 检查是否点击了单位
-      const clickedUnit = this.gameManager.getUnitAt(worldPos, 1)
+      const clickedUnit = this.gameManager.getUnitAt(worldPos, 1.5)
       
       if (e.ctrlKey) {
         // Ctrl+点击 - 添加/移除选择
@@ -576,20 +579,26 @@ export class GameEngine {
         // 普通点击
         if (clickedUnit) {
           this.gameManager.selectUnit(clickedUnit)
+          // 点击单位时不启动拖动（避免移动相机）
+          this.isDragging = false
         } else {
           // 点击空地 - 开始框选
           this.gameManager.clearSelection()
         }
       }
-    } else if (e.button === 2) {
-      // 右键 - 移动/攻击 或 取消建筑放置
-      if (this.isPlacingBuilding) {
+    } else if (e.button === 1 || e.button === 2) {
+      // 中键(1)或右键(2) - 开始相机平移
+      if (this.isPlacingBuilding && e.button === 2) {
         this.cancelBuildingPlacement()
         return
       }
       
-      if (this.gameManager.getSelectedUnits().length > 0) {
-        const targetUnit = this.gameManager.getUnitAt(worldPos, 1)
+      this.isPanning = true
+      this.lastMousePos = { x, y }
+      
+      // 右键且选中单位时 - 移动/攻击
+      if (e.button === 2 && this.gameManager.getSelectedUnits().length > 0 && !this.isPlacingBuilding) {
+        const targetUnit = this.gameManager.getUnitAt(worldPos, 1.5)
         
         if (targetUnit && targetUnit.faction !== this.gameManager.getPlayer('player1')?.faction) {
           // 攻击敌人
@@ -618,6 +627,24 @@ export class GameEngine {
       return
     }
     
+    // 相机平移（中键或右键拖动）
+    if (this.isPanning && this.lastMousePos) {
+      const dx = x - this.lastMousePos.x
+      const dy = y - this.lastMousePos.y
+      
+      // 将屏幕位移转换为世界坐标位移
+      // 正交相机的移动比例与 zoom 相关
+      const moveScale = this.cameraZoom / Math.min(rect.width, rect.height) * 2
+      
+      this.cameraTarget.x -= dx * moveScale
+      this.cameraTarget.z -= dy * moveScale
+      this.updateCameraPosition()
+      
+      this.lastMousePos = { x, y }
+      return
+    }
+    
+    // 左键拖动 - 框选
     if (!this.isDragging || !this.dragStart) return
     
     // 拖拽距离足够大才开始框选
@@ -634,11 +661,20 @@ export class GameEngine {
    * 鼠标释放
    */
   private onMouseUp = (e: MouseEvent): void => {
-    if (!this.gameManager || !this.isDragging || !this.dragStart) return
+    if (!this.gameManager) return
     
     const rect = (e.target as HTMLElement).getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
+    
+    // 结束相机平移
+    if (this.isPanning) {
+      this.isPanning = false
+      this.lastMousePos = null
+      return
+    }
+    
+    if (!this.isDragging || !this.dragStart) return
     
     const dx = x - this.dragStart.x
     const dy = y - this.dragStart.y
@@ -653,6 +689,7 @@ export class GameEngine {
     
     this.isDragging = false
     this.dragStart = null
+    this.lastMousePos = null
     this.hideSelectionBox()
   }
   
