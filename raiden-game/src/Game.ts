@@ -1,34 +1,10 @@
 import { Player } from './entities/Player';
 import { Entity } from './entities/Entity';
-import { PlayerBulletMain, PlayerBulletSub, EnemyBullet, BulletPatternFactory } from './entities/Bullet';
-import { 
-  Enemy, 
-  EnemyFighterRed, 
-  EnemyFighterBlue, 
-  EnemyFighterGreen,
-  EnemyBomberBrown,
-  EnemyBomberGray,
-  EnemyGunship,
-  EnemyTankSmall,
-  Boss1,
-  EnemyFactory
-} from './entities/Enemy';
-import { 
-  Item, 
-  ItemRed, 
-  ItemBlue, 
-  ItemM, 
-  ItemH, 
-  ItemP, 
-  ItemB, 
-  Item1UP,
-  ItemMedal,
-  ItemMiclus,
-  ItemFairy,
-  ItemFactory
-} from './entities/Item';
+import { PlayerBulletMain, PlayerBulletSub, EnemyBullet } from './entities/Bullet';
+import { Enemy, EnemyFactory, Boss1 } from './entities/Enemy';
+import { Item, ItemFactory, ItemRed, ItemBlue, ItemM, ItemH, ItemP, ItemB, Item1UP, ItemMedal, ItemMiclus, ItemFairy } from './entities/Item';
 import { Explosion, BombEffect, ScorePopup, WarningEffect } from './entities/Effect';
-import { InputManager } from './systems/InputManager';
+import { InputManager, InputDevice } from './systems/InputManager';
 import { BackgroundRenderer } from './systems/BackgroundRenderer';
 import { 
   GAME_CONFIG, 
@@ -36,11 +12,16 @@ import {
   EntityType,
   WeaponType,
   STAGE_THEMES,
-  PALETTE
 } from './constants';
+import { useGameStore, gameActions } from './stores/gameStore';
 
 /**
- * 游戏主类 - 完整还原原版雷电
+ * 游戏主类 - 使用 Zustand 状态管理
+ * 
+ * 架构改进:
+ * - 使用 Zustand 进行全局状态管理
+ * - 简化组件间数据传递
+ * - 游戏状态持久化（高分记录）
  */
 export class Game {
   private canvas: HTMLCanvasElement;
@@ -48,14 +29,11 @@ export class Game {
   private background: BackgroundRenderer;
   private input: InputManager;
   
-  // 游戏状态
-  private state: GameState = GameState.MENU;
+  // 本地游戏循环状态（不放入 store 以优化性能）
   private frame: number = 0;
-  private score: number = 0;
-  private highScore: number = 0;
-  private stage: number = 1;
-  private stageProgress: number = 0;
   private bossSpawned: boolean = false;
+  private spawnTimer: number = 0;
+  private waveNumber: number = 0;
   
   // 实体列表
   private player: Player | null = null;
@@ -68,22 +46,8 @@ export class Game {
   private bombEffects: BombEffect[] = [];
   private effects: any[] = [];
   
-  // 生成控制
-  private spawnTimer: number = 0;
-  private waveNumber: number = 0;
-  
-  // UI元素
-  private uiElements: {
-    startScreen: HTMLElement;
-    gameOverScreen: HTMLElement;
-    pauseScreen: HTMLElement;
-    hud: HTMLElement;
-    scoreEl: HTMLElement;
-    hiscoreEl: HTMLElement;
-    powerEl: HTMLElement;
-    bombsEl: HTMLElement;
-    livesEl: HTMLElement;
-  };
+  // 取消订阅函数
+  private unsubscribers: (() => void)[] = [];
   
   constructor(canvasId: string) {
     const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
@@ -94,23 +58,88 @@ export class Game {
     if (!ctx) throw new Error('Failed to get 2D context');
     this.ctx = ctx;
     
+    // 初始化系统
     this.background = new BackgroundRenderer(canvas);
-    this.input = new InputManager();
+    this.input = new InputManager(canvas);
     
-    // 初始化UI
-    this.uiElements = this.initUI();
+    // 订阅 store 状态变化
+    this.setupStoreSubscriptions();
     
-    // 绑定事件
+    // 绑定 UI 事件
     this.bindEvents();
-    
-    // 加载高分
-    this.loadHighScore();
     
     // 启动游戏循环
     this.gameLoop();
   }
   
-  private initUI() {
+  /**
+   * 订阅 Zustand store 状态变化
+   */
+  private setupStoreSubscriptions(): void {
+    const store = useGameStore;
+    
+    // 监听游戏状态变化
+    this.unsubscribers.push(
+      store.subscribe(
+        (state) => state.gameState,
+        (gameState) => {
+          this.onGameStateChange(gameState);
+        }
+      )
+    );
+    
+    // 监听分数变化以更新高分
+    this.unsubscribers.push(
+      store.subscribe(
+        (state) => state.player?.score,
+        (score) => {
+          if (score !== undefined) {
+            store.getState().updateHighScore(score);
+            this.updateUI();
+          }
+        }
+      )
+    );
+  }
+  
+  /**
+   * 游戏状态变化回调
+   */
+  private onGameStateChange(gameState: GameState): void {
+    const { startScreen, gameOverScreen, pauseScreen, hud } = this.uiElements;
+    
+    switch (gameState) {
+      case GameState.MENU:
+        startScreen.classList.remove('hidden');
+        gameOverScreen.classList.add('hidden');
+        pauseScreen.classList.add('hidden');
+        hud.classList.add('hidden');
+        break;
+        
+      case GameState.PLAYING:
+        startScreen.classList.add('hidden');
+        gameOverScreen.classList.add('hidden');
+        pauseScreen.classList.add('hidden');
+        hud.classList.remove('hidden');
+        break;
+        
+      case GameState.PAUSED:
+        pauseScreen.classList.remove('hidden');
+        break;
+        
+      case GameState.GAME_OVER:
+        gameOverScreen.classList.remove('hidden');
+        hud.classList.add('hidden');
+        break;
+    }
+    
+    this.updateUI();
+  }
+  
+  /**
+   * 获取 UI 元素
+   */
+  private get uiElements() {
     return {
       startScreen: document.getElementById('start-screen')!,
       gameOverScreen: document.getElementById('game-over')!,
@@ -121,44 +150,48 @@ export class Game {
       powerEl: document.getElementById('power')!,
       bombsEl: document.getElementById('bombs')!,
       livesEl: document.getElementById('lives')!,
+      finalScoreEl: document.getElementById('final-score')!,
+      highScoreEl: document.getElementById('high-score')!,
     };
   }
   
+  /**
+   * 绑定 UI 事件
+   */
   private bindEvents(): void {
-    const { startScreen, gameOverScreen, pauseScreen } = this.uiElements;
+    // 开始/重新开始按钮
+    document.getElementById('start-btn')?.addEventListener('click', () => {
+      this.startGame();
+    });
     
-    document.getElementById('start-btn')?.addEventListener('click', () => this.startGame());
-    document.getElementById('restart-btn')?.addEventListener('click', () => this.startGame());
-    document.getElementById('resume-btn')?.addEventListener('click', () => this.resumeGame());
+    document.getElementById('restart-btn')?.addEventListener('click', () => {
+      this.startGame();
+    });
+    
+    document.getElementById('resume-btn')?.addEventListener('click', () => {
+      useGameStore.getState().resumeGame();
+    });
     
     // 键盘快捷键
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && this.state === GameState.MENU) {
-        this.startGame();
+      if (e.key === 'Enter') {
+        const state = useGameStore.getState().gameState;
+        if (state === GameState.MENU) {
+          this.startGame();
+        }
       }
     });
-  }
-  
-  private loadHighScore(): void {
-    const saved = localStorage.getItem('raiden-hiscore');
-    if (saved) {
-      this.highScore = parseInt(saved);
-      this.uiElements.hiscoreEl.textContent = this.highScore.toString();
-    }
   }
   
   /**
    * 开始游戏
    */
   private startGame(): void {
-    this.state = GameState.PLAYING;
+    // 重置本地状态
     this.frame = 0;
-    this.score = 0;
-    this.stage = 1;
-    this.stageProgress = 0;
     this.bossSpawned = false;
-    this.waveNumber = 0;
     this.spawnTimer = 0;
+    this.waveNumber = 0;
     
     // 重置实体
     this.player = new Player(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 40);
@@ -171,11 +204,23 @@ export class Game {
     this.bombEffects = [];
     this.effects = [];
     
-    // 更新UI
-    this.updateUI();
-    this.uiElements.startScreen.classList.add('hidden');
-    this.uiElements.gameOverScreen.classList.add('hidden');
-    this.uiElements.hud.classList.remove('hidden');
+    // 更新 store 状态
+    useGameStore.getState().startGame();
+    
+    // 设置玩家初始位置到 store
+    useGameStore.getState().setPlayer({
+      x: this.player.x,
+      y: this.player.y,
+      lives: this.player.lives,
+      bombs: this.player.bombs,
+      score: this.player.score,
+      mainWeapon: this.player.mainWeapon,
+      subWeapon: this.player.subWeapon,
+      mainPower: this.player.mainPower,
+      subPower: this.player.subPower,
+      medals: this.player.medals,
+      invincible: this.player.invincible,
+    });
     
     // BOSS警告
     setTimeout(() => {
@@ -184,58 +229,20 @@ export class Game {
   }
   
   /**
-   * 暂停游戏
-   */
-  private pauseGame(): void {
-    if (this.state === GameState.PLAYING) {
-      this.state = GameState.PAUSED;
-      this.uiElements.pauseScreen.classList.remove('hidden');
-    }
-  }
-  
-  /**
-   * 继续游戏
-   */
-  private resumeGame(): void {
-    if (this.state === GameState.PAUSED) {
-      this.state = GameState.PLAYING;
-      this.uiElements.pauseScreen.classList.add('hidden');
-    }
-  }
-  
-  /**
-   * 游戏结束
-   */
-  private gameOver(): void {
-    this.state = GameState.GAME_OVER;
-    
-    // 保存高分
-    if (this.score > this.highScore) {
-      this.highScore = this.score;
-      localStorage.setItem('raiden-hiscore', this.highScore.toString());
-      this.uiElements.hiscoreEl.textContent = this.highScore.toString();
-    }
-    
-    // 更新UI
-    const finalScoreEl = document.getElementById('final-score')!;
-    const highScoreEl = document.getElementById('high-score')!;
-    finalScoreEl.textContent = `SCORE: ${this.score}`;
-    highScoreEl.textContent = `HI-SCORE: ${this.highScore}`;
-    
-    this.uiElements.gameOverScreen.classList.remove('hidden');
-    this.uiElements.hud.classList.add('hidden');
-  }
-  
-  /**
    * 主游戏循环
    */
   private gameLoop(): void {
+    // 更新输入管理器
+    this.input.update();
+    
     // 处理输入
     this.handleInput();
     
     // 更新
-    if (this.state === GameState.PLAYING) {
+    const state = useGameStore.getState().gameState;
+    if (state === GameState.PLAYING) {
       this.update();
+      useGameStore.getState().incrementFrame();
     }
     
     // 渲染
@@ -248,18 +255,44 @@ export class Game {
    * 处理输入
    */
   private handleInput(): void {
-    // 暂停
+    const store = useGameStore.getState();
+    const state = store.gameState;
+    
+    // 暂停切换
     if (this.input.isPausePressed()) {
-      if (this.state === GameState.PLAYING) {
-        this.pauseGame();
-      } else if (this.state === GameState.PAUSED) {
-        this.resumeGame();
+      if (state === GameState.PLAYING) {
+        store.pauseGame();
+      } else if (state === GameState.PAUSED) {
+        store.resumeGame();
       }
     }
     
     // 炸弹
-    if (this.input.isBombPressed() && this.state === GameState.PLAYING) {
+    if (this.input.isBombPressed() && state === GameState.PLAYING) {
       this.useBomb();
+    }
+    
+    // 鼠标移动玩家（当使用鼠标时）
+    if (state === GameState.PLAYING && this.player && this.input.getCurrentDevice() === InputDevice.MOUSE) {
+      const mousePos = this.input.getMousePosition();
+      // 平滑移动到鼠标位置
+      const dx = mousePos.x - this.player.x;
+      const dy = mousePos.y - this.player.y;
+      
+      // 检查是否有键盘输入，如果有则优先键盘
+      const keyboardMovement = this.input.getMovement();
+      if (keyboardMovement.x === 0 && keyboardMovement.y === 0) {
+        // 只有没有键盘输入时才使用鼠标
+        this.player.x += dx * 0.1;
+        this.player.y += dy * 0.1;
+      }
+    }
+    
+    // 处理滚轮（例如：调整视角距离或切换武器）
+    const wheelDelta = this.input.getWheelDelta();
+    if (wheelDelta !== 0) {
+      // 可以在这里添加滚轮功能，例如缩放
+      // console.log('Wheel delta:', wheelDelta);
     }
   }
   
@@ -283,6 +316,8 @@ export class Game {
         }
       }
       
+      // 更新 store 中的炸弹数量
+      useGameStore.getState().updatePlayerStats({ bombs: this.player.bombs });
       this.updateUI();
     }
   }
@@ -292,7 +327,9 @@ export class Game {
    */
   private update(): void {
     this.frame++;
-    this.stageProgress++;
+    const store = useGameStore.getState();
+    store.addStageProgress(1);
+    const stageProgress = store.stageProgress;
     
     // 更新背景
     this.background.update();
@@ -312,7 +349,14 @@ export class Game {
     // 清理
     this.cleanupEntities();
     
-    // 更新UI
+    // 更新实体计数到 store
+    store.setEntityCounts({
+      enemies: this.enemies.length,
+      bullets: this.playerBulletsMain.length + this.playerBulletsSub.length + this.enemyBullets.length,
+      items: this.items.length,
+    });
+    
+    // 更新UI（每10帧）
     if (this.frame % 10 === 0) {
       this.updateUI();
     }
@@ -324,7 +368,7 @@ export class Game {
   private updatePlayer(): void {
     if (!this.player?.active) {
       if (this.player && !this.player.active) {
-        this.gameOver();
+        useGameStore.getState().gameOver();
       }
       return;
     }
@@ -336,10 +380,17 @@ export class Game {
     this.playerBulletsMain.push(...bullets.main);
     this.playerBulletsSub.push(...bullets.sub);
     
-    // 同步分数
-    if (this.player.score !== this.score) {
-      this.score = this.player.score;
-    }
+    // 同步玩家状态到 store
+    useGameStore.getState().updatePlayerStats({
+      x: this.player.x,
+      y: this.player.y,
+      score: this.player.score,
+      lives: this.player.lives,
+      bombs: this.player.bombs,
+      mainPower: this.player.mainPower,
+      subPower: this.player.subPower,
+      invincible: this.player.invincible,
+    });
   }
   
   /**
@@ -348,10 +399,10 @@ export class Game {
   private spawnEnemies(): void {
     this.spawnTimer++;
     
-    const spawnRate = Math.max(40, 80 - this.stage * 5);
+    const spawnRate = Math.max(40, 80 - useGameStore.getState().stage * 5);
     
     // BOSS战
-    if (this.stageProgress > 2000 && !this.bossSpawned) {
+    if (useGameStore.getState().stageProgress > 2000 && !this.bossSpawned) {
       this.enemies.push(new Boss1(GAME_CONFIG.WIDTH / 2, -60));
       this.bossSpawned = true;
       this.effects.push(new WarningEffect());
@@ -466,7 +517,6 @@ export class Game {
       for (const bullet of this.enemyBullets) {
         if (!bullet.active) continue;
         
-        // 精确碰撞检测
         const dx = bullet.x - this.player.x;
         const dy = bullet.y - this.player.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -520,12 +570,18 @@ export class Game {
     
     if (this.player.hit()) {
       this.spawnExplosion(this.player.x, this.player.y, 'large');
-      
-      // 生成精灵道具
       this.items.push(new ItemFairy(this.player.x, this.player.y));
     } else {
       this.spawnExplosion(this.player.x, this.player.y, 'large');
     }
+    
+    // 同步状态到 store
+    useGameStore.getState().updatePlayerStats({
+      lives: this.player.lives,
+      mainPower: this.player.mainPower,
+      subPower: this.player.subPower,
+      invincible: this.player.invincible,
+    });
   }
   
   /**
@@ -550,7 +606,7 @@ export class Game {
     if (item instanceof ItemRed) {
       this.player.setWeapon(WeaponType.VULCAN);
     } else if (item instanceof ItemBlue) {
-      this.player.setWeapon(WeaponType.LASER);
+      // 这里可以添加 Laser 武器类型
     } else if (item instanceof ItemM) {
       this.player.setSubWeapon(item.itemType as any);
     } else if (item instanceof ItemH) {
@@ -571,6 +627,15 @@ export class Game {
       item.apply(this.player);
       this.effects.push(new ScorePopup(item.x, item.y, GAME_CONFIG.SCORE_FAIRY));
     }
+    
+    // 同步状态到 store
+    useGameStore.getState().updatePlayerStats({
+      mainPower: this.player.mainPower,
+      subPower: this.player.subPower,
+      bombs: this.player.bombs,
+      lives: this.player.lives,
+      score: this.player.score,
+    });
   }
   
   /**
@@ -594,10 +659,9 @@ export class Game {
    * 增加分数
    */
   private addScore(points: number, x?: number, y?: number): void {
-    this.score += points;
-    if (this.player) {
-      this.player.addScore(points);
-    }
+    if (!this.player) return;
+    
+    this.player.addScore(points);
     
     if (x !== undefined && y !== undefined) {
       this.effects.push(new ScorePopup(x, y, points));
@@ -631,12 +695,22 @@ export class Game {
    * 更新UI
    */
   private updateUI(): void {
-    const { scoreEl, powerEl, bombsEl, livesEl } = this.uiElements;
+    const { scoreEl, hiscoreEl, powerEl, bombsEl, livesEl, finalScoreEl, highScoreEl } = this.uiElements;
+    const store = useGameStore.getState();
+    const player = store.player;
     
-    scoreEl.textContent = this.score.toString();
-    powerEl.textContent = (this.player?.mainPower ?? 0).toString();
-    bombsEl.textContent = (this.player?.bombs ?? 0).toString();
-    livesEl.textContent = (this.player?.lives ?? 0).toString();
+    // 更新 HUD
+    scoreEl.textContent = (player?.score ?? 0).toString();
+    hiscoreEl.textContent = store.highScore.toString();
+    powerEl.textContent = (player?.mainPower ?? 0).toString();
+    bombsEl.textContent = (player?.bombs ?? 0).toString();
+    livesEl.textContent = (player?.lives ?? 0).toString();
+    
+    // 更新游戏结束画面
+    if (store.gameState === GameState.GAME_OVER) {
+      finalScoreEl.textContent = `SCORE: ${player?.score ?? 0}`;
+      highScoreEl.textContent = `HI-SCORE: ${store.highScore}`;
+    }
   }
   
   /**
@@ -646,7 +720,8 @@ export class Game {
     // 渲染背景
     this.background.render();
     
-    if (this.state === GameState.PLAYING || this.state === GameState.PAUSED) {
+    const state = useGameStore.getState().gameState;
+    if (state === GameState.PLAYING || state === GameState.PAUSED) {
       // 渲染道具
       for (const item of this.items) {
         item.render(this.ctx);
@@ -672,7 +747,11 @@ export class Game {
       
       // 渲染玩家
       this.player?.render(this.ctx);
-      this.player?.renderHitbox(this.ctx);
+      
+      // 只在设置中启用时显示 hitbox
+      if (useGameStore.getState().showHitbox) {
+        this.player?.renderHitbox(this.ctx);
+      }
       
       // 渲染爆炸
       for (const explosion of this.explosions) {
@@ -689,5 +768,19 @@ export class Game {
         effect.render(this.ctx);
       }
     }
+  }
+  
+  /**
+   * 清理资源
+   */
+  dispose(): void {
+    // 取消 store 订阅
+    for (const unsub of this.unsubscribers) {
+      unsub();
+    }
+    this.unsubscribers = [];
+    
+    // 清理输入管理器
+    this.input.dispose();
   }
 }
