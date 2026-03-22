@@ -4,15 +4,20 @@ import { ResourceManager } from './engine/gameRes/ResourceManager'
 import { ResourceImporter } from './gui/component/ResourceImporter'
 import { LoadingScreen } from './gui/component/LoadingScreen'
 import { MainMenu } from './gui/screen/MainMenu'
+import { CampaignScreen, CampaignConfig } from './gui/screen/CampaignScreen'
 import { GameCanvas } from './gui/component/GameCanvas'
 
-type AppState = 'menu' | 'loading' | 'game' | 'import'
+type AppState = 'menu' | 'campaign' | 'loading' | 'game' | 'import'
 
 function App() {
   const [appState, setAppState] = useState<AppState>('menu')
   const [loadingText, setLoadingText] = useState('初始化...')
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [engine, setEngine] = useState<GameEngine | null>(null)
+  const [campaignConfig, setCampaignConfig] = useState<CampaignConfig | null>(null)
+  
+  // 保存战役配置供后续使用（如设置AI难度）
+  console.log('战役配置:', campaignConfig)
 
   const handleImportComplete = useCallback(async (rm: ResourceManager) => {
     setAppState('loading')
@@ -37,6 +42,15 @@ function App() {
     setAppState('import')
   }, [])
 
+  const handleStartCampaign = useCallback(() => {
+    setAppState('campaign')
+  }, [])
+
+  const handleCampaignComplete = useCallback((config: CampaignConfig) => {
+    setCampaignConfig(config)
+    setAppState('import')
+  }, [])
+
   const handleBackToMenu = useCallback(() => {
     setAppState('menu')
     if (engine) {
@@ -48,7 +62,17 @@ function App() {
   return (
     <div className="app">
       {appState === 'menu' && (
-        <MainMenu onStartGame={handleStartGame} />
+        <MainMenu 
+          onStartGame={handleStartGame}
+          onStartCampaign={handleStartCampaign}
+        />
+      )}
+
+      {appState === 'campaign' && (
+        <CampaignScreen
+          onStartCampaign={handleCampaignComplete}
+          onCancel={() => setAppState('menu')}
+        />
       )}
 
       {appState === 'import' && (

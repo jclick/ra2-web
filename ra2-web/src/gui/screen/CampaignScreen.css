@@ -1,0 +1,246 @@
+.campaign-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: #fff;
+}
+
+.campaign-screen h1 {
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.campaign-screen h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #ffd700;
+}
+
+.faction-section {
+  width: 100%;
+  max-width: 800px;
+  margin-bottom: 2rem;
+}
+
+.country-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.country-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem;
+  border: 2px solid var(--country-color, #fff);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.country-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  background: rgba(var(--country-color-rgb, 255, 255, 255), 0.1);
+}
+
+.country-card.allies {
+  border-color: #4169E1;
+  background: rgba(65, 105, 225, 0.1);
+}
+
+.country-card.soviets {
+  border-color: #DC143C;
+  background: rgba(220, 20, 60, 0.1);
+}
+
+.country-card .flag {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+}
+
+.country-card .name {
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.selected-info {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.difficulty-section {
+  margin: 2rem 0;
+}
+
+.difficulty-section h3 {
+  text-align: center;
+  margin-bottom: 1rem;
+  color: #ffd700;
+}
+
+.difficulty-grid {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.difficulty-btn {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid currentColor;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+.difficulty-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.difficulty-btn.selected {
+  background: currentColor;
+  color: #000 !important;
+}
+
+.map-section {
+  width: 100%;
+  max-width: 800px;
+  margin: 2rem 0;
+}
+
+.map-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.map-card {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.map-card:hover {
+  border-color: #ffd700;
+}
+
+.map-card.selected {
+  border-color: #ffd700;
+  background: rgba(255, 215, 0, 0.1);
+}
+
+.map-preview {
+  height: 100px;
+  background: linear-gradient(135deg, #228B22 0%, #1a5a1a 50%, #8B4513 50%, #654321 100%);
+  border-radius: 4px;
+  margin-bottom: 0.75rem;
+}
+
+.map-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.map-name {
+  font-weight: bold;
+  color: #ffd700;
+}
+
+.map-details {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.summary {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  padding: 1rem 2rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.summary-item .label {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.summary-item .value {
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.difficulty-easy { color: #32CD32; }
+.difficulty-medium { color: #FFD700; }
+.difficulty-hard { color: #FF4500; }
+.difficulty-brutal { color: #DC143C; }
+
+.button-row {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.back-btn {
+  padding: 0.75rem 2rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.start-btn {
+  padding: 0.75rem 3rem;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+  color: #000;
+  font-weight: bold;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.start-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(255, 215, 0, 0.4);
+}
+
+.opponent-section {
+  width: 100%;
+  max-width: 600px;
+  margin-bottom: 2rem;
+}

@@ -2,9 +2,10 @@ import React from 'react'
 
 interface MainMenuProps {
   onStartGame: () => void
+  onStartCampaign: () => void
 }
 
-export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame }) => {
+export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, onStartCampaign }) => {
   return (
     <div 
       className="main-menu"
@@ -52,17 +53,55 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame }) => {
           }}
         >
           <button 
-            className="ra-button"
+            className="ra-button primary"
             onClick={onStartGame}
-            style={{ fontSize: '1.1rem', padding: '15px 30px' }}
+            style={{ 
+              fontSize: '1.1rem', 
+              padding: '15px 30px',
+              background: 'linear-gradient(135deg, #c41e3a 0%, #8b0000 100%)',
+              border: 'none',
+              color: '#fff',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              boxShadow: '0 4px 15px rgba(196, 30, 58, 0.4)',
+              transition: 'all 0.2s',
+            }}
           >
             开始游戏
           </button>
           
           <button 
             className="ra-button"
+            onClick={onStartCampaign}
+            style={{ 
+              fontSize: '1.1rem', 
+              padding: '15px 30px',
+              background: 'linear-gradient(135deg, #4169e1 0%, #0000cd 100%)',
+              border: 'none',
+              color: '#fff',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              boxShadow: '0 4px 15px rgba(65, 105, 225, 0.4)',
+              transition: 'all 0.2s',
+            }}
+          >
+            战役模式
+          </button>
+          
+          <button 
+            className="ra-button"
             disabled
-            style={{ opacity: 0.5 }}
+            style={{ 
+              opacity: 0.5,
+              fontSize: '1.1rem',
+              padding: '15px 30px',
+              background: 'rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              color: '#888',
+              borderRadius: 8,
+            }}
           >
             多人对战 (开发中)
           </button>
@@ -70,15 +109,15 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame }) => {
           <button 
             className="ra-button"
             disabled
-            style={{ opacity: 0.5 }}
-          >
-            战役模式 (开发中)
-          </button>
-          
-          <button 
-            className="ra-button"
-            disabled
-            style={{ opacity: 0.5 }}
+            style={{ 
+              opacity: 0.5,
+              fontSize: '1.1rem',
+              padding: '15px 30px',
+              background: 'rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              color: '#888',
+              borderRadius: 8,
+            }}
           >
             地图编辑器 (开发中)
           </button>
