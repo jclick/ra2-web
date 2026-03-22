@@ -37,6 +37,11 @@ export class GameEngine {
   private isDragging = false
   private dragStart: { x: number; y: number } | null = null
   // selectionBox: THREE.Mesh | null = null
+  
+  // 建筑放置模式
+  private isPlacingBuilding = false
+  private onBuildingPlaced: ((position: Vector3) => void) | null = null
+  private placementPreview: THREE.Mesh | null = null
 
   constructor(_resourceManager: ResourceManager) {
     // this.resourceManager = resourceManager
@@ -442,6 +447,12 @@ export class GameEngine {
     console.log('[Engine] World position:', worldPos)
     
     if (e.button === 0) {
+      // 检查是否在建筑放置模式
+      if (this.isPlacingBuilding) {
+        this.completeBuildingPlacement(worldPos)
+        return
+      }
+      
       // 左键 - 选择
       this.isDragging = true
       this.dragStart = { x, y }
@@ -468,7 +479,12 @@ export class GameEngine {
         }
       }
     } else if (e.button === 2) {
-      // 右键 - 移动/攻击
+      // 右键 - 移动/攻击 或 取消建筑放置
+      if (this.isPlacingBuilding) {
+        this.cancelBuildingPlacement()
+        return
+      }
+      
       if (this.gameManager.getSelectedUnits().length > 0) {
         const targetUnit = this.gameManager.getUnitAt(worldPos, 1)
         
@@ -487,11 +503,19 @@ export class GameEngine {
    * 鼠标移动
    */
   private onMouseMove = (e: MouseEvent): void => {
-    if (!this.isDragging || !this.dragStart) return
-    
     const rect = (e.target as HTMLElement).getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
+    
+    const worldPos = this.screenToWorld(x, y)
+    
+    // 如果在建筑放置模式，更新预览位置
+    if (this.isPlacingBuilding) {
+      this.updatePlacementPreview(worldPos)
+      return
+    }
+    
+    if (!this.isDragging || !this.dragStart) return
     
     // 拖拽距离足够大才开始框选
     const dx = x - this.dragStart.x
@@ -772,16 +796,119 @@ export class GameEngine {
    * 开始建筑放置模式
    */
   startBuildingPlacement(buildingId: string, onPlace: (position: Vector3) => void): void {
-    // 简化的建筑放置 - 直接调用回调
-    // 实际项目中应该显示建筑预览并等待玩家点击位置
-    console.log('开始放置建筑:', buildingId)
+    console.log('[Engine] 进入建筑放置模式:', buildingId)
     
-    // 临时：在相机目标位置放置
-    onPlace({
-      x: Math.floor(this.cameraTarget.x),
-      y: 0,
-      z: Math.floor(this.cameraTarget.z),
+    this.isPlacingBuilding = true
+    this.onBuildingPlaced = onPlace
+    
+    // 创建放置预览网格
+    this.createPlacementPreview()
+    
+    // 改变鼠标样式
+    if (this.renderer) {
+      this.renderer.domElement.style.cursor = 'crosshair'
+    }
+  }
+
+  /**
+   * 创建建筑放置预览
+   */
+  private createPlacementPreview(): void {
+    if (!this.scene) return
+    
+    // 移除旧的预览
+    if (this.placementPreview) {
+      this.scene.remove(this.placementPreview)
+      this.placementPreview.geometry.dispose()
+      ;(this.placementPreview.material as THREE.Material).dispose()
+      this.placementPreview = null
+    }
+    
+    // 创建预览网格（半透明绿色方块）
+    const geometry = new THREE.BoxGeometry(2, 1, 2)
+    const material = new THREE.MeshBasicMaterial({
+      color: 0x00ff00,
+      transparent: true,
+      opacity: 0.5,
     })
+    this.placementPreview = new THREE.Mesh(geometry, material)
+    this.placementPreview.visible = false
+    this.scene.add(this.placementPreview)
+  }
+
+  /**
+   * 更新预览位置
+   */
+  private updatePlacementPreview(worldPos: Vector3): void {
+    if (!this.placementPreview) return
+    
+    this.placementPreview.visible = true
+    this.placementPreview.position.set(worldPos.x, 0.5, worldPos.z)
+    
+    // 检查位置是否可建造（简化：只检查是否在地图范围内）
+    const isValid = this.isValidPlacementPosition(worldPos)
+    const material = this.placementPreview.material as THREE.MeshBasicMaterial
+    material.color.setHex(isValid ? 0x00ff00 : 0xff0000)
+  }
+
+  /**
+   * 检查位置是否可建造
+   */
+  private isValidPlacementPosition(pos: Vector3): boolean {
+    if (!this.gameManager) return false
+    
+    const map = this.gameManager.map
+    const x = Math.floor(pos.x)
+    const z = Math.floor(pos.z)
+    
+    // 检查地图边界
+    if (x < 0 || x >= map.getWidth() || z < 0 || z >= map.getHeight()) {
+      return false
+    }
+    
+    // 检查地形是否可建造
+    const cell = map.getCell(x, z)
+    if (!cell || cell.terrainType === 'Water') {
+      return false
+    }
+    
+    return true
+  }
+
+  /**
+   * 取消建筑放置模式
+   */
+  private cancelBuildingPlacement(): void {
+    console.log('[Engine] 取消建筑放置模式')
+    
+    this.isPlacingBuilding = false
+    this.onBuildingPlaced = null
+    
+    if (this.placementPreview) {
+      this.placementPreview.visible = false
+    }
+    
+    if (this.renderer) {
+      this.renderer.domElement.style.cursor = 'default'
+    }
+  }
+
+  /**
+   * 完成建筑放置
+   */
+  private completeBuildingPlacement(worldPos: Vector3): void {
+    if (!this.isValidPlacementPosition(worldPos)) {
+      console.log('[Engine] 位置无效，无法放置建筑')
+      return
+    }
+    
+    console.log('[Engine] 放置建筑于位置:', worldPos)
+    
+    if (this.onBuildingPlaced) {
+      this.onBuildingPlaced(worldPos)
+    }
+    
+    this.cancelBuildingPlacement()
   }
 
   /**
