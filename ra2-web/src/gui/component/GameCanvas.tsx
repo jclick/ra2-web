@@ -38,14 +38,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const [cameraPosition, setCameraPosition] = useState({ x: 25, z: 25 })
   const [gameTime, setGameTime] = useState(0)
 
-  // 初始化游戏
+  // 初始化游戏 (不依赖 canvasRef)
   useEffect(() => {
-    console.log('[GameCanvas] useEffect triggered, canvasRef:', canvasRef.current)
-    
-    if (!canvasRef.current) {
-      console.error('[GameCanvas] canvasRef is null!')
-      return
-    }
+    console.log('[GameCanvas] Initializing game...')
 
     try {
       // 获取或创建游戏管理器
@@ -95,7 +90,34 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         console.error('[GameCanvas] Failed to get player1! Players:', gameManager.players)
       }
 
+    } catch (error) {
+      console.error('[GameCanvas] Initialization error:', error)
+    }
+  }, [engine])
+
+  // 初始化渲染和启动游戏循环 (依赖 canvasRef)
+  useEffect(() => {
+    console.log('[GameCanvas] Canvas effect triggered, canvasRef:', canvasRef.current, 'player:', player)
+    
+    if (!canvasRef.current) {
+      console.log('[GameCanvas] canvasRef not ready yet, skipping...')
+      return
+    }
+    
+    if (!player) {
+      console.log('[GameCanvas] player not ready yet, skipping...')
+      return
+    }
+
+    const gameManager = gameManagerRef.current
+    if (!gameManager) {
+      console.error('[GameCanvas] gameManager is null!')
+      return
+    }
+
+    try {
       // 初始化渲染
+      console.log('[GameCanvas] Attaching engine to canvas...')
       engine.attachTo(canvasRef.current)
       engine.setGameManager?.(gameManager)
       engine.start()
@@ -118,13 +140,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       animationFrameRef.current = requestAnimationFrame(gameLoop)
 
       return () => {
+        console.log('[GameCanvas] Cleaning up...')
         cancelAnimationFrame(animationFrameRef.current)
         engine.stop()
       }
     } catch (error) {
-      console.error('[GameCanvas] Initialization error:', error)
+      console.error('[GameCanvas] Canvas setup error:', error)
     }
-  }, [engine])
+  }, [player, engine])
 
   // 更新游戏状态
   const updateGameState = useCallback(() => {
