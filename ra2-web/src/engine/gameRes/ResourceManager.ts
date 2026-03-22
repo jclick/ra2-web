@@ -137,7 +137,7 @@ export class ResourceManager {
       const headerData = await this.readFileSlice(file, 0, 16)
       
       // 步骤2: 解析文件头获取入口数量
-      const view = new DataView(headerData.buffer)
+      const view = new DataView(headerData.buffer, headerData.byteOffset, headerData.byteLength)
       const firstWord = view.getUint32(0, true)
       
       const MIX_FLAG_CHECKSUM = 0x00010000
@@ -152,6 +152,23 @@ export class ResourceManager {
         // 经典格式: count(4) + datasize(4) + entries...
         entryCount = firstWord
         headerSize = 8 + entryCount * 12
+      }
+      
+      // 检查 entryCount 是否合理
+      if (entryCount < 0 || entryCount > 100000) {
+        throw new Error(`无效的 entry count: ${entryCount}`)
+      }
+      
+      // 检查 headerSize 是否超过文件大小
+      if (headerSize > file.size) {
+        throw new Error(`Header size (${headerSize}) 超过文件大小 (${file.size})`)
+      }
+      
+      // 限制单次读取的最大大小 (10MB)
+      const maxHeaderSize = 10 * 1024 * 1024
+      if (headerSize > maxHeaderSize) {
+        console.warn(`${file.name}: Header 过大 (${(headerSize/1024/1024).toFixed(1)}MB)，只读取前 ${(maxHeaderSize/1024/1024).toFixed(1)}MB`)
+        headerSize = maxHeaderSize
       }
       
       // 步骤3: 读取完整的索引表

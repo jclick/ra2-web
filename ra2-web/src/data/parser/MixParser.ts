@@ -90,12 +90,25 @@ export class MixParser {
 
     // 读取索引表 (只保存元数据，不提取文件内容)
     const entries: MixEntry[] = []
+    
+    // 检查是否有足够的数据读取所有 entries
+    const requiredBytes = 8 + entryCount * 12  // 8字节头 + 每个entry 12字节
+    if (this.data.length < requiredBytes) {
+      console.warn(`MIX 数据不足: 需要 ${requiredBytes} 字节，实际只有 ${this.data.length} 字节`)
+      console.warn(`将只读取 ${Math.floor((this.data.length - 8) / 12)} 个 entries`)
+      entryCount = Math.floor((this.data.length - 8) / 12)
+    }
+    
     for (let i = 0; i < entryCount; i++) {
-      const id = this.readUint32()
-      const offset = this.readUint32()
-      const size = this.readUint32()
-      
-      entries.push({ id, offset, size })
+      try {
+        const id = this.readUint32()
+        const offset = this.readUint32()
+        const size = this.readUint32()
+        entries.push({ id, offset, size })
+      } catch (e) {
+        console.warn(`读取 entry ${i}/${entryCount} 失败:`, e)
+        break
+      }
     }
 
     this._info = {
@@ -213,6 +226,9 @@ export class MixParser {
    * 读取 32 位无符号整数
    */
   private readUint32(): number {
+    if (this.position + 4 > this.view.byteLength) {
+      throw new Error(`尝试读取超出数据范围: position=${this.position}, length=${this.view.byteLength}`)
+    }
     const value = this.view.getUint32(this.position, true)
     this.position += 4
     return value
