@@ -143,39 +143,66 @@ export class ResourceManager {
       // 步骤2: 解析文件头获取入口数量
       const view = new DataView(headerData.buffer, headerData.byteOffset, headerData.byteLength)
       const firstWord = view.getUint32(0, true)
+      const secondWord = view.getUint32(4, true)
+      
+      console.log(`[MIX] ${file.name}: firstWord=0x${firstWord.toString(16)}, secondWord=0x${secondWord.toString(16)}, size=${file.size}`)
       
       const MIX_FLAG_CHECKSUM = 0x00010000
       let entryCount: number
       let headerSize: number
       
+      // 检查是否是 TS 格式 (RA2 使用)
       if (firstWord & MIX_FLAG_CHECKSUM) {
         // TS 格式: flags(4) + datasize(4) + entries...
         entryCount = firstWord & 0xFFFF
-        headerSize = 8 + entryCount * 12  // 8字节头 + 每个entry 12字节
-      } else {
+        console.log(`[MIX] ${file.name}: 检测到 TS 格式, entryCount=${entryCount}`)
+      } else if ((firstWord & 0xFFFF0000) === 0) {
         // 经典格式: count(4) + datasize(4) + entries...
         entryCount = firstWord
-        headerSize = 8 + entryCount * 12
+        console.log(`[MIX] ${file.name}: 检测到经典格式, entryCount=${entryCount}`)
+      } else {
+        // 可能是加密的 MIX 或其他格式
+        console.warn(`[MIX] ${file.name}: 未知的 MIX 格式 (firstWord=0x${firstWord.toString(16)})`)
+        // 尝试作为经典格式处理
+        entryCount = firstWord & 0xFFFF
+        if (entryCount > 100000) {
+          throw new Error(`无效的 entry count: ${entryCount} (firstWord=0x${firstWord.toString(16)})`)
+        }
       }
       
+      headerSize = 8 + entryCount * 12  // 8字节头 + 每个entry 12字节
+      
       // 检查 entryCount 是否合理
-      if (entryCount < 0 || entryCount > 100000) {
-        throw new Error(`无效的 entry count: ${entryCount}`)
+      if (entryCount > 100000) {
+        console.warn(`[MIX] ${file.name}: entryCount ${entryCount} 过大，尝试限制到 50000`)
+        entryCount = Math.min(entryCount, 50000)
+        headerSize = 8 + entryCount * 12
       }
       
       // 检查 headerSize 是否超过文件大小
       if (headerSize > file.size) {
-        throw new Error(`Header size (${headerSize}) 超过文件大小 (${file.size})`)
+        console.warn(`[MIX] ${file.name}: Header size (${headerSize}) 超过文件大小 (${file.size})，尝试调整`)
+        // 尝试根据文件大小重新计算
+        entryCount = Math.floor((file.size - 8) / 12)
+        headerSize = 8 + entryCount * 12
+        console.log(`[MIX] ${file.name}: 调整后 entryCount=${entryCount}, headerSize=${headerSize}`)
       }
       
       // 限制单次读取的最大大小 (10MB)
       const maxHeaderSize = 10 * 1024 * 1024
       if (headerSize > maxHeaderSize) {
         console.warn(`${file.name}: Header 过大 (${(headerSize/1024/1024).toFixed(1)}MB)，只读取前 ${(maxHeaderSize/1024/1024).toFixed(1)}MB`)
-        headerSize = maxHeaderSize
+        entryCount = Math.floor((maxHeaderSize - 8) / 12)
+        headerSize = 8 + entryCount * 12
+      }
+      
+      // 检查是否有效
+      if (entryCount <= 0 || headerSize <= 8) {
+        throw new Error(`无法解析 MIX 文件: entryCount=${entryCount}, headerSize=${headerSize}`)
       }
       
       // 步骤3: 读取完整的索引表
+      console.log(`[MIX] ${file.name}: 读取索引表, headerSize=${headerSize}`)
       const indexData = await this.readFileSlice(file, 0, headerSize)
       
       // 步骤4: 解析索引
