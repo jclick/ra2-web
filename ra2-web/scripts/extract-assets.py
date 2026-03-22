@@ -12,35 +12,7 @@ from pathlib import Path
 
 def find_ra2_installation():
     """查找可能的RA2安装位置"""
-    possible_paths = []
-    
-    # Windows 常见位置
-    if sys.platform == 'win32':
-        possible_paths.extend([
-            r"C:\Program Files\EA Games\Command and Conquer Red Alert 2",
-            r"C:\Program Files (x86)\EA Games\Command and Conquer Red Alert 2",
-            r"C:\Program Files (x86)\Steam\steamapps\common\Command and Conquer Red Alert 2",
-            r"C:\Games\RA2",
-            r"D:\Games\RA2",
-        ])
-        
-        # 检查注册表
-        try:
-            import winreg
-            key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, 
-                r"SOFTWARE\WOW6432Node\Electronic Arts\EA Games\Red Alert 2")
-            install_path, _ = winreg.QueryValueEx(key, "InstallPath")
-            possible_paths.insert(0, install_path)
-        except:
-            pass
-    else:
-        # Linux/macOS - 检查 Wine 安装
-        home = Path.home()
-        possible_paths.extend([
-            home / ".wine/drive_c/Program Files/EA Games/Command and Conquer Red Alert 2",
-            home / ".wine/drive_c/Games/RA2",
-            "/mnt/c/Program Files/EA Games/Command and Conquer Red Alert 2",
-        ])
+    possible_paths = ["/Users/huazi/Downloads/hjgongheguozhihui/hjghgzh"]
     
     found = []
     for path in possible_paths:
