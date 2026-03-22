@@ -311,18 +311,19 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       overflow: 'hidden',
     }}>
       {/* 3D 渲染画布 - 留出侧边栏空间 */}
-      <div 
+      <div
         ref={canvasRef}
         className="game-canvas"
         style={{
           position: 'absolute',
-          top: 0,
+          top: 40, // 留出顶部状态栏
           left: 0,
           right: '160px',
-          bottom: 0,
+          bottom: 40, // 留出底部提示栏
           background: '#1a0a2e',
           zIndex: 1,
-          border: '2px solid red', // 调试用边框
+          border: '2px solid red',
+          pointerEvents: 'auto',
         }}
       />
 

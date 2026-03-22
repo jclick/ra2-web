@@ -384,28 +384,55 @@ export class GameEngine {
    * 设置输入事件
    */
   private setupInputEvents(): void {
-    if (!this.renderer) return
+    if (!this.renderer) {
+      console.warn('[Engine] Cannot setup input events: renderer is null')
+      return
+    }
     
     const canvas = this.renderer.domElement
+    
+    console.log('[Engine] Setting up input events on canvas:', canvas)
+    
+    // 确保 canvas 可以获得焦点
+    canvas.tabIndex = 0
+    canvas.style.outline = 'none'
     
     canvas.addEventListener('mousedown', this.onMouseDown)
     canvas.addEventListener('mousemove', this.onMouseMove)
     canvas.addEventListener('mouseup', this.onMouseUp)
-    canvas.addEventListener('wheel', this.onWheel)
+    canvas.addEventListener('wheel', this.onWheel, { passive: false })
     canvas.addEventListener('contextmenu', (e) => e.preventDefault())
+    
+    // 添加窗口级别的滚轮事件作为后备
+    window.addEventListener('wheel', (e) => {
+      // 检查事件是否在 canvas 区域内
+      if (this.container && this.container.contains(e.target as Node)) {
+        this.onWheel(e)
+      }
+    }, { passive: false })
+    
+    console.log('[Engine] Input events setup complete')
   }
   
   /**
    * 鼠标按下
    */
   private onMouseDown = (e: MouseEvent): void => {
-    if (!this.gameManager) return
+    console.log('[Engine] Mouse down:', e.button, 'at', e.clientX, e.clientY)
+    
+    if (!this.gameManager) {
+      console.warn('[Engine] No gameManager')
+      return
+    }
     
     const rect = (e.target as HTMLElement).getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
     
+    console.log('[Engine] Mouse position in canvas:', x, y)
+    
     const worldPos = this.screenToWorld(x, y)
+    console.log('[Engine] World position:', worldPos)
     
     if (e.button === 0) {
       // 左键 - 选择
@@ -501,8 +528,12 @@ export class GameEngine {
   private onWheel = (e: WheelEvent): void => {
     e.preventDefault()
     
+    console.log('[Engine] Wheel event:', e.deltaY, 'current zoom:', this.cameraZoom)
+    
     const delta = e.deltaY > 0 ? 1.1 : 0.9
     this.cameraZoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.cameraZoom * delta))
+    
+    console.log('[Engine] New zoom:', this.cameraZoom)
     
     this.updateCameraPosition()
   }
