@@ -50,7 +50,7 @@ node ~/.openclaw/skills/qveris-official/scripts/qveris_tool.mjs call <tool_id> -
 ---
 *最后更新: 2026-03-14*
 
-## RA2 Web 游戏项目 (2026-03-22)
+## RA2 Web 游戏项目 (2026-03-22 更新)
 
 **项目仓库**: https://github.com/jclick/ra2-web
 
@@ -58,17 +58,29 @@ node ~/.openclaw/skills/qveris-official/scripts/qveris_tool.mjs call <tool_id> -
 - **Stage 1**: 基础引擎、地图系统、单位移动
 - **Stage 2**: 科技树、超级武器、AI系统 ✓ 完成
 - **资源系统**: MIX/SHP/INI 解析器
+- **MIX 解密**: Blowfish 算法支持，可处理加密 MIX 文件
 - **导入界面**: 3步流程，支持测试资源
+
+### 新增: MIX 文件解密支持
+- **算法**: Westwood 修改版 Blowfish
+- **加密标志**: `0x00020000` (TS格式 MIX)
+- **密钥结构**: 80字节 key source + RSA 加密密钥
+- **文件位置**: `src/data/parser/MixDecrypt.ts`, `EncryptedMixParser.ts`
+- **使用方式**: ResourceManager 自动检测并尝试解密
+
+**限制**: 简化版实现，复杂加密可能需要 XCC Mixer 预处理
 
 ### 技术栈
 - TypeScript + React + Three.js
 - Vite 构建工具
 - 支持 WebGL 渲染
+- 浏览器自动化测试 (Playwright API)
 
 ### 关键文件位置
 - 项目: `/root/.openclaw/workspace/ra2-web/`
 - 资源: `public/assets/`
 - 文档: `docs/`
+- 解密: `src/data/parser/MixDecrypt.ts`
 
 ### 启动方法
 ```bash
@@ -82,3 +94,10 @@ npm run dev
 - 无原版资源可用"测试资源"运行（带5秒超时保护）
 - 游戏使用占位图形显示单位
 - 即使测试资源全部加载失败也能启动游戏
+- 加密 MIX 文件会自动尝试解密，失败则跳过
+
+### 最新提交
+- `134b011`: WebGL 检测 + MIX 解密支持
+
+---
+*最后更新: 2026-03-22*
