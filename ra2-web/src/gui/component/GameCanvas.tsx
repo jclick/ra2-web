@@ -304,9 +304,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           position: 'absolute',
           top: 0,
           left: 0,
-          right: '160px', // 侧边栏宽度
+          right: '160px',
           bottom: 0,
-          background: '#000',
+          background: '#1a0a2e',
+          zIndex: 1,
         }}
       />
 

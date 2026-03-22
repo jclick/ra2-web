@@ -147,14 +147,22 @@ export class GameEngine {
    * 创建地图
    */
   private createMap(): void {
-    if (!this.scene || !this.gameManager) return
+    if (!this.scene || !this.gameManager) {
+      console.warn('[Engine] Cannot create map: scene or gameManager is null')
+      return
+    }
+    
+    console.log('[Engine] Creating map...')
     
     this.mapMesh = new THREE.Group()
     
     const map = this.gameManager.map
     const cellSize = 1
     
+    console.log(`[Engine] Map size: ${map.getWidth()}x${map.getHeight()}`)
+    
     // 创建地面
+    let tileCount = 0
     for (let x = 0; x < map.getWidth(); x++) {
       for (let y = 0; y < map.getHeight(); y++) {
         const cell = map.getCell(x, y)
@@ -185,8 +193,11 @@ export class GameEngine {
         mesh.receiveShadow = true
         
         this.mapMesh.add(mesh)
+        tileCount++
       }
     }
+    
+    console.log(`[Engine] Created ${tileCount} map tiles`)
     
     // 添加网格线
     const gridHelper = new THREE.GridHelper(map.getWidth(), map.getWidth(), 0x444444, 0x333333)
@@ -194,6 +205,7 @@ export class GameEngine {
     this.mapMesh.add(gridHelper)
     
     this.scene.add(this.mapMesh)
+    console.log('[Engine] Map added to scene')
   }
   
   /**
@@ -323,6 +335,23 @@ export class GameEngine {
     this.container = container
     if (this.renderer) {
       container.appendChild(this.renderer.domElement)
+      
+      // 根据容器大小调整渲染器
+      const width = container.clientWidth
+      const height = container.clientHeight
+      this.renderer.setSize(width, height)
+      
+      // 更新相机比例
+      if (this.camera) {
+        const aspect = width / height
+        this.camera.left = -this.cameraZoom * aspect
+        this.camera.right = this.cameraZoom * aspect
+        this.camera.top = this.cameraZoom
+        this.camera.bottom = -this.cameraZoom
+        this.camera.updateProjectionMatrix()
+      }
+      
+      console.log(`[Engine] Attached to container: ${width}x${height}`)
     }
     
     // 设置输入事件

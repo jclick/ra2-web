@@ -34,7 +34,14 @@ function App() {
       setAppState('game')
     } catch (error) {
       console.error('初始化失败:', error)
-      alert('游戏初始化失败: ' + (error as Error).message)
+      const errorMsg = (error as Error).message
+      
+      if (errorMsg.includes('WebGL')) {
+        alert('您的浏览器不支持 WebGL，无法运行游戏。\n\n请尝试：\n1. 使用最新版 Chrome/Firefox/Edge 浏览器\n2. 在浏览器设置中启用硬件加速\n3. 更新显卡驱动')
+      } else {
+        alert('游戏初始化失败: ' + errorMsg)
+      }
+      
       setAppState('menu')
     }
   }, [])
