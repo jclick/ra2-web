@@ -36,13 +36,14 @@ export interface GameResource {
 }
 
 /**
- * MIX 文件容器
+ * MIX 文件容器 (内存优化版)
+ * 不缓存所有文件，只保存原始数据和解析器
  */
 export interface MixContainer {
   name: string
   info: MixFileInfo
   data: Uint8Array
-  files: Map<number, Uint8Array>
+  parser: MixParser
 }
 
 /**
@@ -93,41 +94,63 @@ export class ResourceManager {
   }
 
   /**
-   * 导入 MIX 文件
+   * 导入 MIX 文件 (内存优化版)
+   * 只解析索引，不一次性提取所有文件
    */
   private async importMixFile(name: string, data: Uint8Array): Promise<void> {
     this.notifyLoading(0, `正在解析 ${name}...`)
-    
+
     const parser = new MixParser(data)
     const info = parser.parse()
-    
-    // 提取所有文件
-    const files = parser.extractAll()
-    
+
+    // 保存容器 (只保存解析器，不提取所有文件)
     const container: MixContainer = {
       name,
       info,
       data,
-      files,
+      parser,
     }
-    
+
     this.mixFiles.set(name, container)
-    
-    // 自动解析内部的 SHP 文件
-    for (const [id, fileData] of files) {
+
+    // 只提取并解析SHP文件（通常较小且需要预解析）
+    // 限制处理的文件数量，避免大文件导致内存问题
+    const maxShpToProcess = 100 // 最多处理100个SHP文件
+    let processedShpCount = 0
+
+    for (const entry of info.entries) {
+      // 只处理小文件（< 500KB），避免大文件导致内存问题
+      if (entry.size > 500 * 1024) continue
+
+      // 按需提取文件
+      const fileData = parser.extractFile(entry)
+      if (!fileData) continue
+
       // 检查是否是 SHP 文件
       if (this.isShpFile(fileData)) {
         try {
           const shpParser = new ShpParser(fileData)
           const shpInfo = shpParser.parse()
-          this.shpCache.set(`${name}:${id.toString(16)}`, shpInfo)
+          this.shpCache.set(`${name}:${entry.id.toString(16)}`, shpInfo)
+          processedShpCount++
+
+          if (processedShpCount >= maxShpToProcess) {
+            console.warn(`${name}: 已达到SHP处理上限(${maxShpToProcess})，跳过剩余文件`)
+            break
+          }
         } catch (e) {
-          // 不是有效的 SHP 文件
+          // 不是有效的 SHP 文件，忽略
         }
       }
+
+      // 每处理10个文件更新一次进度
+      if (processedShpCount % 10 === 0) {
+        const progress = Math.min((processedShpCount / Math.min(info.entryCount, maxShpToProcess)) * 100, 100)
+        this.notifyLoading(progress, `${name}: 已处理 ${processedShpCount} 个文件...`)
+      }
     }
-    
-    this.notifyLoading(100, `${name} 解析完成，包含 ${info.entryCount} 个文件`)
+
+    this.notifyLoading(100, `${name} 解析完成，包含 ${info.entryCount} 个文件，已缓存 ${processedShpCount} 个SHP`)
   }
 
   /**
@@ -222,6 +245,30 @@ export class ResourceManager {
    */
   getShpFromMix(mixName: string, fileId: number): ShpFileInfo | undefined {
     return this.shpCache.get(`${mixName}:${fileId.toString(16)}`)
+  }
+
+  /**
+   * 从 MIX 容器中按需提取文件 (内存优化)
+   * @param mixName MIX文件名
+   * @param fileId 文件ID
+   * @returns 文件数据或null
+   */
+  extractFromMix(mixName: string, fileId: number): Uint8Array | null {
+    const container = this.mixFiles.get(mixName)
+    if (!container) return null
+    return container.parser.extractById(fileId)
+  }
+
+  /**
+   * 从 MIX 容器中按名称提取文件
+   * @param mixName MIX文件名
+   * @param fileName 文件名
+   * @returns 文件数据或null
+   */
+  extractFromMixByName(mixName: string, fileName: string): Uint8Array | null {
+    const container = this.mixFiles.get(mixName)
+    if (!container) return null
+    return container.parser.extractByName(fileName)
   }
 
   /**

@@ -115,7 +115,19 @@ export const ResourceImporter: React.FC<ResourceImporterProps> = ({
         setStatus(`正在导入: ${file.name} (${i + 1}/${selectedFiles.length})`)
         setProgress((i / selectedFiles.length) * 100)
         
-        await resourceManagerRef.current.importFile(file)
+        // 检查文件大小，给出警告
+        if (file.size > 200 * 1024 * 1024) { // 200MB
+          console.warn(`大文件警告: ${file.name} (${(file.size/1024/1024).toFixed(1)}MB)，解析可能需要较长时间`)
+        }
+        
+        try {
+          await resourceManagerRef.current.importFile(file)
+        } catch (fileError) {
+          console.error(`导入文件失败: ${file.name}`, fileError)
+          // 继续处理其他文件，不中断整个流程
+          setStatus(`警告: ${file.name} 导入失败，继续处理其他文件...`)
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        }
       }
 
       setProgress(100)
@@ -135,7 +147,8 @@ export const ResourceImporter: React.FC<ResourceImporterProps> = ({
     } catch (error) {
       console.error('导入失败:', error)
       setStep('error')
-      setStatus('导入失败: ' + error)
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      setStatus('导入失败: ' + errorMsg)
     }
   }, [selectedFiles])
 

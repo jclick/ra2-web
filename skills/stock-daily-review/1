@@ -1,0 +1,7 @@
+/root/.openclaw/workspace/skills/stock-daily-review/scripts/generate_review.py:223: SyntaxWarning: invalid escape sequence '\|'
+  return '''
+/root/.openclaw/workspace/skills/stock-daily-review/scripts/generate_review.py:339: SyntaxWarning: invalid escape sequence '\|'
+  return '''
+usage: generate_review.py [-h] --date DATE --data DATA
+                          [--output-dir OUTPUT_DIR]
+generate_review.py: error: unrecognized arguments: 2

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>雷电 - Raiden</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+      font-family: 'Courier New', monospace;
+    }
+    
+    #game-container {
+      position: relative;
+      box-shadow: 0 0 50px rgba(0, 255, 255, 0.2);
+    }
+    
+    canvas {
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      background: #000;
+    }
+    
+    #ui {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    
+    .screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.9);
+      pointer-events: auto;
+    }
+    
+    .screen.hidden {
+      display: none;
+    }
+    
+    /* 标题样式 */
+    .title-container {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    h1 {
+      font-size: 48px;
+      color: #00cccc;
+      text-shadow: 
+        0 0 10px #00cccc,
+        0 0 20px #0088aa,
+        0 0 40px #004466;
+      letter-spacing: 8px;
+      margin-bottom: 10px;
+    }
+    
+    .subtitle {
+      font-size: 14px;
+      color: #ff6600;
+      letter-spacing: 4px;
+    }
+    
+    /* 按钮样式 */
+    .btn {
+      padding: 12px 40px;
+      font-size: 16px;
+      background: transparent;
+      border: 2px solid #00cccc;
+      color: #00cccc;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      font-family: 'Courier New', monospace;
+      margin: 10px;
+    }
+    
+    .btn:hover {
+      background: #00cccc;
+      color: #000;
+      box-shadow: 0 0 20px #00cccc;
+    }
+    
+    /* 操作说明 */
+    .controls {
+      margin-top: 30px;
+      color: #888;
+      font-size: 12px;
+      text-align: center;
+      line-height: 1.8;
+    }
+    
+    .controls span {
+      color: #00cccc;
+      font-weight: bold;
+    }
+    
+    /* HUD */
+    #hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      padding: 4px 8px;
+      display: flex;
+      justify-content: space-between;
+      color: #fff;
+      font-size: 12px;
+      text-shadow: 1px 1px 0 #000;
+      pointer-events: none;
+    }
+    
+    #hud.hidden {
+      display: none;
+    }
+    
+    .hud-section {
+      display: flex;
+      gap: 15px;
+    }
+    
+    .hud-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .hud-label {
+      color: #00cccc;
+    }
+    
+    .hud-value {
+      color: #fff;
+      min-width: 30px;
+    }
+    
+    /* 游戏结束画面 */
+    #game-over h2 {
+      font-size: 32px;
+      color: #ff3333;
+      text-shadow: 0 0 10px #ff3333;
+      margin-bottom: 20px;
+    }
+    
+    #final-score {
+      font-size: 18px;
+      color: #ffff00;
+      margin-bottom: 10px;
+    }
+    
+    #high-score {
+      font-size: 14px;
+      color: #00cccc;
+      margin-bottom: 30px;
+    }
+    
+    /* 暂停画面 */
+    #pause-screen h2 {
+      font-size: 24px;
+      color: #ffff00;
+      text-shadow: 0 0 10px #ffff00;
+      margin-bottom: 30px;
+    }
+    
+    /* 版权信息 */
+    .copyright {
+      position: absolute;
+      bottom: 10px;
+      width: 100%;
+      text-align: center;
+      color: #444;
+      font-size: 10px;
+    }
+    
+    /* 武器指示器 */
+    .weapon-info {
+      position: absolute;
+      right: 8px;
+      top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 10px;
+    }
+    
+    .weapon-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .weapon-icon {
+      width: 12px;
+      height: 8px;
+    }
+    
+    .weapon-icon.vulcan { background: #ff4444; }
+    .weapon-icon.laser { background: #4444ff; }
+    .weapon-icon.missile { background: #00ff00; }
+    .weapon-icon.homing { background: #ff8800; }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="game-canvas" width="224" height="256"></canvas>
+    
+    <div id="ui">
+      <!-- HUD -->
+      <div id="hud" class="hidden">
+        <div class="hud-section">
+          <div class="hud-item">
+            <span class="hud-label">SCORE</span>
+            <span class="hud-value" id="score">0</span>
+          </div>
+          <div class="hud-item">
+            <span class="hud-label">HI</span>
+            <span class="hud-value" id="hiscore">0</span>
+          </div>
+        </div>
+        
+        <div class="hud-section">
+          <div class="hud-item">
+            <span class="hud-label">P:</span>
+            <span class="hud-value" id="power">0</span>
+          </div>
+          <div class="hud-item">
+            <span class="hud-label">B:</span>
+            <span class="hud-value" id="bombs">3</span>
+          </div>
+          <div class="hud-item">
+            <span class="hud-label">LIVES:</span>
+            <span class="hud-value" id="lives">2</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 开始画面 -->
+      <div id="start-screen" class="screen">
+        <div class="title-container">
+          <h1>雷電</h1>
+          <div class="subtitle">RAIDEN © 1990 SEIBU KAIHATSU</div>
+        </div>
+        
+        <button class="btn" id="start-btn">INSERT COIN / START</button>
+        
+        <div class="controls">
+          <p><span>WASD / 方向键</span> 移动</p>
+          <p><span>Z</span> 射击 <span>X</span> 炸弹 <span>P</span> 暂停</p>
+          <p>按住Z键移动减速，便于精确避弹</p>
+        </div>
+        
+        <div class="copyright">REPLICA BY OPENCLAW</div>
+      </div>
+      
+      <!-- 游戏结束画面 -->
+      <div id="game-over" class="screen hidden">
+        <h2>GAME OVER</h2>
+        <div id="final-score">SCORE: 0</div>
+        <div id="high-score">HI-SCORE: 0</div>
+        <button class="btn" id="restart-btn">CONTINUE</button>
+      </div>
+      
+      <!-- 暂停画面 -->
+      <div id="pause-screen" class="screen hidden">
+        <h2>PAUSED</h2>
+        <button class="btn" id="resume-btn">RESUME</button>
+      </div>
+    </div>
+  </div>
+  
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

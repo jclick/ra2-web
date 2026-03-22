@@ -1,0 +1,142 @@
+{
+  "date": "2026-03-16",
+  "source": "qveris",
+  "fetch_status": {
+    "overall": "partial",
+    "failed_fields": [
+      {
+        "field": "indices.sh_index",
+        "reason": "Discovery failed: Discovery failed: Error: fetch failed\n"
+      },
+      {
+        "field": "indices.sz_index",
+        "reason": "Discovery failed: Discovery failed: Error: fetch failed\n"
+      },
+      {
+        "field": "indices.cy_index",
+        "reason": "Discovery failed: Discovery failed: Error: fetch failed\n"
+      },
+      {
+        "field": "indices.kc50",
+        "reason": "Discovery failed: Discovery failed: Error: fetch failed\n"
+      },
+      {
+        "field": "market.up_count",
+        "reason": "API call failed: Command failed: Error: fetch failed\n"
+      },
+      {
+        "field": "market.down_count",
+        "reason": "API call failed: Command failed: Error: fetch failed\n"
+      },
+      {
+        "field": "market.limit_up",
+        "reason": "API call failed: Command failed: Error: fetch failed\n"
+      },
+      {
+        "field": "market.limit_down",
+        "reason": "API call failed: Command failed: Error: fetch failed\n"
+      },
+      {
+        "field": "sectors",
+        "reason": "Discovery failed: Discovery failed: Error: fetch failed\n"
+      }
+    ]
+  },
+  "indices": {
+    "sh_index": {
+      "close": {
+        "value": null,
+        "status": "failed",
+        "timestamp": "2026-03-17T06:42:37.277540",
+        "reason": "Discovery failed: Discovery failed: Error: fetch failed\n"
+      },
+      "change_pct": {
+        "value": null,
+        "status": "failed",
+        "timestamp": "2026-03-17T06:42:37.277556",
+        "reason": "Discovery failed: Discovery failed: Error: fetch failed\n"
+      }
+    },
+    "sz_index": {
+      "close": {
+        "value": null,
+        "status": "failed",
+        "timestamp": "2026-03-17T06:42:37.277561",
+        "reason": "Discovery failed: Discovery failed: Error: fetch failed\n"
+      },
+      "change_pct": {
+        "value": null,
+        "status": "failed",
+        "timestamp": "2026-03-17T06:42:37.277563",
+        "reason": "Discovery failed: Discovery failed: Error: fetch failed\n"
+      }
+    },
+    "cy_index": {
+      "close": {
+        "value": null,
+        "status": "failed",
+        "timestamp": "2026-03-17T06:42:37.277565",
+        "reason": "Discovery failed: Discovery failed: Error: fetch failed\n"
+      },
+      "change_pct": {
+        "value": null,
+        "status": "failed",
+        "timestamp": "2026-03-17T06:42:37.277567",
+        "reason": "Discovery failed: Discovery failed: Error: fetch failed\n"
+      }
+    },
+    "kc50": {
+      "close": {
+        "value": null,
+        "status": "failed",
+        "timestamp": "2026-03-17T06:42:37.277569",
+        "reason": "Discovery failed: Discovery failed: Error: fetch failed\n"
+      },
+      "change_pct": {
+        "value": null,
+        "status": "failed",
+        "timestamp": "2026-03-17T06:42:37.277570",
+        "reason": "Discovery failed: Discovery failed: Error: fetch failed\n"
+      }
+    }
+  },
+  "market": {
+    "turnover": {
+      "value": 23253,
+      "status": "success",
+      "timestamp": "2026-03-17T06:42:40.031411",
+      "reason": null
+    },
+    "up_count": {
+      "value": null,
+      "status": "failed",
+      "timestamp": "2026-03-17T06:42:51.782886",
+      "reason": "API call failed: Command failed: Error: fetch failed\n"
+    },
+    "down_count": {
+      "value": null,
+      "status": "failed",
+      "timestamp": "2026-03-17T06:42:51.782903",
+      "reason": "API call failed: Command failed: Error: fetch failed\n"
+    },
+    "limit_up": {
+      "value": null,
+      "status": "failed",
+      "timestamp": "2026-03-17T06:42:51.782905",
+      "reason": "API call failed: Command failed: Error: fetch failed\n"
+    },
+    "limit_down": {
+      "value": null,
+      "status": "failed",
+      "timestamp": "2026-03-17T06:42:51.782907",
+      "reason": "API call failed: Command failed: Error: fetch failed\n"
+    }
+  },
+  "sectors": {
+    "value": null,
+    "status": "failed",
+    "timestamp": "2026-03-17T06:43:02.327313",
+    "reason": "Discovery failed: Discovery failed: Error: fetch failed\n"
+  },
+  "timestamp": "2026-03-17T06:42:26.733407"
+}

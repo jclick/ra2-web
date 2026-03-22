@@ -1,11 +1,6 @@
 /**
- * MIX 文件解析器
- * Westwood 的资源包格式
- * 
- * MIX 文件结构:
- * - 文件头 (6-10 bytes)
- * - 索引表 (每个文件一项)
- * - 数据块
+ * MIX 文件解析器 (内存优化版)
+ * 支持大文件流式解析，避免内存溢出
  */
 
 // MIX 文件标志
@@ -45,12 +40,18 @@ export interface MixFileInfo {
 }
 
 /**
- * MIX 文件解析器
+ * MIX 文件解析器 (内存优化版)
+ * 
+ * 设计变更:
+ * - 不缓存所有提取的文件
+ * - 按需提取单个文件
+ * - 支持流式处理大文件
  */
 export class MixParser {
   private data: Uint8Array
   private view: DataView
   private position: number = 0
+  private _info: MixFileInfo | null = null
 
   constructor(data: Uint8Array) {
     this.data = data
@@ -58,9 +59,11 @@ export class MixParser {
   }
 
   /**
-   * 解析 MIX 文件
+   * 解析 MIX 文件头 (只读取索引，不提取内容)
    */
   parse(): MixFileInfo {
+    if (this._info) return this._info
+
     // 读取标志或数量
     const firstWord = this.readUint32()
 
@@ -85,21 +88,17 @@ export class MixParser {
       version = 'classic'
     }
 
-    // 读取索引表
+    // 读取索引表 (只保存元数据，不提取文件内容)
     const entries: MixEntry[] = []
     for (let i = 0; i < entryCount; i++) {
       const id = this.readUint32()
       const offset = this.readUint32()
       const size = this.readUint32()
       
-      entries.push({
-        id,
-        offset,
-        size,
-      })
+      entries.push({ id, offset, size })
     }
 
-    return {
+    this._info = {
       version,
       entryCount,
       dataSize,
@@ -107,12 +106,85 @@ export class MixParser {
       hasChecksum,
       isEncrypted,
     }
+
+    return this._info
   }
 
   /**
-   * 提取所有文件
+   * 获取文件信息 (不包含数据)
+   */
+  getInfo(): MixFileInfo {
+    return this.parse()
+  }
+
+  /**
+   * 提取单个文件 (按需调用，避免一次性加载所有文件)
+   */
+  extractFile(entry: MixEntry): Uint8Array | null {
+    if (entry.offset + entry.size > this.data.length) {
+      console.warn(`文件数据超出范围: ID=${entry.id.toString(16)}`)
+      return null
+    }
+
+    // 只提取请求的文件，不缓存
+    return this.data.slice(entry.offset, entry.offset + entry.size)
+  }
+
+  /**
+   * 通过ID提取文件
+   */
+  extractById(id: number): Uint8Array | null {
+    const info = this.parse()
+    const entry = info.entries.find(e => e.id === id)
+    if (!entry) return null
+    return this.extractFile(entry)
+  }
+
+  /**
+   * 通过名称提取文件
+   */
+  extractByName(name: string): Uint8Array | null {
+    const info = this.parse()
+    const id = calculateId(name)
+    const entry = info.entries.find(e => e.id === id)
+    if (!entry) {
+      console.warn(`文件未找到: ${name} (ID=${id.toString(16)})`)
+      return null
+    }
+    return this.extractFile(entry)
+  }
+
+  /**
+   * 查找文件条目 (不提取数据)
+   */
+  findEntry(name: string): MixEntry | undefined {
+    const info = this.parse()
+    const id = calculateId(name)
+    return info.entries.find(e => e.id === id)
+  }
+
+  /**
+   * 查找文件条目By ID
+   */
+  findEntryById(id: number): MixEntry | undefined {
+    const info = this.parse()
+    return info.entries.find(e => e.id === id)
+  }
+
+  /**
+   * 遍历所有文件条目 (回调方式，避免一次性创建大量数组)
+   */
+  forEachEntry(callback: (entry: MixEntry, index: number) => void): void {
+    const info = this.parse()
+    info.entries.forEach((entry, index) => callback(entry, index))
+  }
+
+  /**
+   * 提取所有文件 (⚠️ 警告: 大文件可能导致内存溢出，建议使用按需提取)
+   * @deprecated 建议使用 extractById 或 extractByName
    */
   extractAll(): Map<number, Uint8Array> {
+    console.warn('extractAll() may cause memory issues with large MIX files. Consider using extractById() or extractByName() instead.')
     const info = this.parse()
     const files = new Map<number, Uint8Array>()
 
@@ -127,23 +199,14 @@ export class MixParser {
   }
 
   /**
-   * 提取单个文件
+   * 获取文件列表 (只返回元数据，不包含文件内容)
    */
-  extractFile(entry: MixEntry): Uint8Array | null {
-    if (entry.offset + entry.size > this.data.length) {
-      console.warn(`文件数据超出范围: ID=${entry.id.toString(16)}`)
-      return null
-    }
-
-    return this.data.slice(entry.offset, entry.offset + entry.size)
-  }
-
-  /**
-   * 通过名称查找文件
-   */
-  findFileByName(info: MixFileInfo, name: string): MixEntry | undefined {
-    const id = calculateId(name)
-    return info.entries.find(e => e.id === id)
+  getFileList(): Array<{ id: number; size: number; name?: string }> {
+    const info = this.parse()
+    return info.entries.map(e => ({
+      id: e.id,
+      size: e.size,
+    }))
   }
 
   /**

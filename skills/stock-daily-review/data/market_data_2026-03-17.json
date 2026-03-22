@@ -1,0 +1,40 @@
+{
+  "date": "2026-03-17",
+  "source": "sina+eastmoney",
+  "fetch_status": {
+    "overall": "success",
+    "attempted_sources": [
+      "sina",
+      "eastmoney"
+    ],
+    "successful_source": "sina+eastmoney",
+    "errors": []
+  },
+  "indices": {
+    "sh_index": {
+      "close": 4084.79,
+      "change_pct": -0.26
+    },
+    "sz_index": {
+      "close": 14307.58,
+      "change_pct": 0.19
+    },
+    "cy_index": {
+      "close": 3357.02,
+      "change_pct": 1.41
+    },
+    "kc50": {
+      "close": 1384.99,
+      "change_pct": 0.83
+    }
+  },
+  "market": {
+    "turnover": null,
+    "up_count": null,
+    "down_count": null,
+    "limit_up": 44,
+    "limit_down": 5
+  },
+  "sectors": [],
+  "timestamp": "2026-03-17T06:57:36.156337"
+}

@@ -1,0 +1,103 @@
+{
+  "date": "2026-03-17",
+  "source": "qveris",
+  "indices": {
+    "sh_index": {
+      "close": 4049.91,
+      "change_pct": -0.85
+    },
+    "sz_index": {
+      "close": 14039.73,
+      "change_pct": -1.87
+    },
+    "cy_index": {
+      "close": 3280.0589,
+      "change_pct": -2.29
+    },
+    "kc50": {
+      "close": 1354.15,
+      "change_pct": -2.23
+    }
+  },
+  "market": {
+    "turnover": 28301.0,
+    "up_count": 2600,
+    "down_count": 2600,
+    "limit_up": 0,
+    "limit_down": 0,
+    "limit_up_list": [],
+    "limit_down_list": []
+  },
+  "sectors": [
+    {
+      "name": "化工",
+      "limit_up_count": 3,
+      "stocks": [
+        {
+          "name": "金牛化工",
+          "change_pct": 4.89
+        }
+      ]
+    },
+    {
+      "name": "锂电池",
+      "limit_up_count": 2,
+      "stocks": [
+        {
+          "name": "璞泰来",
+          "change_pct": -4.62
+        }
+      ]
+    },
+    {
+      "name": "风电",
+      "limit_up_count": 3,
+      "stocks": [
+        {
+          "name": "通裕重工",
+          "change_pct": 6.6
+        }
+      ]
+    }
+  ],
+  "stocks": {
+    "先导智能": {
+      "code": "300450.SZ",
+      "close": 49.84,
+      "change_pct": -2.94,
+      "turnover": 19.53
+    },
+    "盐湖股份": {
+      "code": "000792.SZ",
+      "close": 36.15,
+      "change_pct": -3.16,
+      "turnover": 34.31
+    },
+    "中国电建": {
+      "code": "601669.SH",
+      "close": 6.12,
+      "change_pct": -5.41,
+      "turnover": 67.63
+    },
+    "金牛化工": {
+      "code": "600722.SH",
+      "close": 19.3,
+      "change_pct": 4.89,
+      "turnover": 36.64
+    },
+    "璞泰来": {
+      "code": "603659.SH",
+      "close": 30.77,
+      "change_pct": -4.62,
+      "turnover": 23.95
+    },
+    "通裕重工": {
+      "code": "300185.SZ",
+      "close": 4.2,
+      "change_pct": 6.6,
+      "turnover": 38.68
+    }
+  },
+  "timestamp": "2026-03-17T15:14:59.237262",
+  "note": "All data fetched from Qveris (iFinD) API - NO HARDCODED VALUES"
+}

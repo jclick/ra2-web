@@ -1,0 +1,22 @@
+{
+  "date": "2026-03-13",
+  "source": "filled_template",
+  "indices": {
+    "sh_index": {"close": 4095.45, "change_pct": -0.82},
+    "sz_index": {"close": 14280.78, "change_pct": -0.65},
+    "cy_index": {"close": 3310.28, "change_pct": -0.22},
+    "kc50": {"close": 1373.64, "change_pct": -0.72}
+  },
+  "market": {
+    "turnover": 24003,
+    "up_count": 1502,
+    "down_count": 3824,
+    "limit_up": 71,
+    "limit_down": 36
+  },
+  "sectors": [
+    {"name": "化工", "limit_up_count": 10, "stocks": ["金牛化工", "潞化科技", "赤天化", "澄星股份", "川金诺"]},
+    {"name": "锂电池", "limit_up_count": 8, "stocks": ["璞泰来", "金鹰股份", "西藏城投", "中科电气"]},
+    {"name": "风电", "limit_up_count": 5, "stocks": ["通裕重工", "中国电建", "天顺风能", "天能重工"]}
+  ]
+}
