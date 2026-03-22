@@ -30,9 +30,9 @@ export class GameEngine {
   private lastTime = 0
   
   // 相机控制
-  private cameraTarget = new THREE.Vector3(25, 0, 25)
-  private cameraZoom = 50
-  private minZoom = 20
+  private cameraTarget = new THREE.Vector3(5, 0, 5)  // 玩家1初始位置附近
+  private cameraZoom = 30  // 缩小初始缩放，更近距离观察
+  private minZoom = 10
   private maxZoom = 100
   
   // 输入状态
@@ -247,23 +247,23 @@ export class GameEngine {
     // 根据阵营选择颜色
     const color = unit.faction === Faction.ALLIES ? 0x0066CC : 0xCC0000
     
-    // 创建单位主体
+    // 创建单位主体（增大尺寸以便更容易看到和选中）
     let geometry: THREE.BufferGeometry
     let scale = 1
     
     switch (unit.type) {
       case 'Infantry':
-        geometry = new THREE.CapsuleGeometry(0.2, 0.6, 4, 8)
-        scale = 0.5
-        break
-      case 'Aircraft':
-        geometry = new THREE.ConeGeometry(0.5, 1.5, 8)
-        geometry.rotateX(Math.PI / 2)
+        geometry = new THREE.CapsuleGeometry(0.4, 1.0, 4, 8)  // 增大步兵尺寸
         scale = 0.8
         break
+      case 'Aircraft':
+        geometry = new THREE.ConeGeometry(1.0, 2.0, 8)  // 增大飞行器尺寸
+        geometry.rotateX(Math.PI / 2)
+        scale = 1.0
+        break
       default: // Vehicle
-        geometry = new THREE.BoxGeometry(0.8, 0.5, 0.8)
-        scale = 1
+        geometry = new THREE.BoxGeometry(1.5, 1.0, 1.5)  // 增大载具尺寸
+        scale = 1.0
     }
     
     const material = new THREE.MeshLambertMaterial({ color })
@@ -273,8 +273,8 @@ export class GameEngine {
     
     group.add(mesh)
     
-    // 添加选择指示器（默认隐藏）
-    const ringGeometry = new THREE.RingGeometry(0.5, 0.6, 32)
+    // 添加选择指示器（默认隐藏）- 增大指示器
+    const ringGeometry = new THREE.RingGeometry(0.8, 1.0, 32)  // 增大选择环
     const ringMaterial = new THREE.MeshBasicMaterial({
       color: 0x00ff00,
       side: THREE.DoubleSide,

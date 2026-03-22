@@ -672,7 +672,7 @@ export class GameManager {
   /**
    * 在位置查找单位
    */
-  getUnitAt(position: Vector3, radius: number = 2): Unit | null {
+  getUnitAt(position: Vector3, radius: number = 1.5): Unit | null {
     for (const unit of this.units.values()) {
       const dx = unit.position.x - position.x
       const dz = unit.position.z - position.z
