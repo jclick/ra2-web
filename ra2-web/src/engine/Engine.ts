@@ -3,7 +3,7 @@ import { ResourceManager } from './gameRes/ResourceManager'
 import { GameManager } from '../game/GameManager'
 import { Unit } from '../game/objects/Unit'
 import { Building } from '../game/buildings/BuildingSystem'
-import { Vector3, Faction, GameMode } from '../game/types'
+import { Vector3, Faction } from '../game/types'
 
 /**
  * 游戏引擎核心
@@ -51,31 +51,24 @@ export class GameEngine {
 
   /**
    * 初始化游戏引擎
+   * 注意：GameManager 需要外部通过 setGameManager() 传入
    */
   async initialize(): Promise<void> {
-    // 初始化游戏管理器
-    this.gameManager = new GameManager({
-      mapName: 'TestMap',
-      maxPlayers: 2,
-      startingUnits: true,
-      crates: false,
-      superWeapons: false,
-      gameMode: GameMode.STANDARD,
-    })
-    
-    // 设置回调
-    this.gameManager.setCallbacks({
-      onUnitCreated: (unit) => this.onUnitCreated(unit),
-      onUnitDestroyed: (unit) => this.onUnitDestroyed(unit),
-      onBuildingCreated: (building) => this.onBuildingCreated(building),
-      onBuildingDestroyed: (building) => this.onBuildingDestroyed(building),
-      onSelectionChanged: (units) => this.onSelectionChanged(units),
-    })
-    
-    this.gameManager.initialize()
-    
     // 初始化Three.js
     this.initThreeJS()
+    
+    // 监听窗口大小变化
+    window.addEventListener('resize', this.handleResize)
+  }
+  
+  /**
+   * 初始化游戏场景（在 setGameManager 后调用）
+   */
+  private initializeGameScene(): void {
+    if (!this.gameManager) {
+      console.warn('[Engine] Cannot initialize game scene: gameManager is null')
+      return
+    }
     
     // 创建地图
     this.createMap()
@@ -85,9 +78,6 @@ export class GameEngine {
     
     // 创建初始单位
     this.createInitialUnits()
-    
-    // 监听窗口大小变化
-    window.addEventListener('resize', this.handleResize)
   }
   
   /**
@@ -852,21 +842,18 @@ export class GameEngine {
    * 设置游戏管理器（用于外部传入）
    */
   setGameManager(gameManager: GameManager): void {
-    // 如果是同一个 GameManager，只需更新回调，但仍需确保场景已创建
+    console.log('[Engine] Setting GameManager, existing:', this.gameManager ? 'yes' : 'no', 'new:', gameManager ? 'yes' : 'no')
+    
+    // 如果是同一个 GameManager，只需更新回调
     if (this.gameManager === gameManager) {
-      console.log('[Engine] Same GameManager, updating callbacks and ensuring scene')
+      console.log('[Engine] Same GameManager, updating callbacks only')
       this.gameManager.setCallbacks({
         onUnitCreated: (unit) => this.onUnitCreated(unit),
         onUnitDestroyed: (unit) => this.onUnitDestroyed(unit),
+        onBuildingCreated: (building) => this.onBuildingCreated(building),
+        onBuildingDestroyed: (building) => this.onBuildingDestroyed(building),
         onSelectionChanged: (units) => this.onSelectionChanged(units),
       })
-      
-      // 如果场景已准备好但地图还没创建，创建它们
-      if (this.scene && !this.mapMesh) {
-        console.log('[Engine] Scene ready but no map, creating map and units')
-        this.createMap()
-        this.createInitialUnits()
-      }
       return
     }
     
@@ -876,25 +863,13 @@ export class GameEngine {
     this.gameManager.setCallbacks({
       onUnitCreated: (unit) => this.onUnitCreated(unit),
       onUnitDestroyed: (unit) => this.onUnitDestroyed(unit),
+      onBuildingCreated: (building) => this.onBuildingCreated(building),
+      onBuildingDestroyed: (building) => this.onBuildingDestroyed(building),
       onSelectionChanged: (units) => this.onSelectionChanged(units),
     })
     
-    // 重新创建地图和单位
-    if (this.scene) {
-      // 清除旧的
-      this.unitMeshes.forEach((mesh) => this.scene!.remove(mesh))
-      this.unitMeshes.clear()
-      this.selectionIndicators.clear()
-      
-      if (this.mapMesh) {
-        this.scene.remove(this.mapMesh)
-        this.mapMesh = null
-      }
-      
-      // 创建新的
-      this.createMap()
-      this.createInitialUnits()
-    }
+    // 初始化游戏场景
+    this.initializeGameScene()
   }
 
   /**

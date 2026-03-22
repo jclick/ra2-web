@@ -37,14 +37,14 @@ export class EncryptedMixParser {
    * 初始化解密
    * 读取密钥源并创建 Blowfish 实例
    */
-  private async initializeDecryption(): Promise<boolean> {
+  private async initializeDecryption(encryptedHeader?: Uint8Array): Promise<boolean> {
     try {
       // 读取密钥源 (文件头后 80 字节)
       const offset = getKeySourceOffset()
       this.keySource = await this.readSlice(offset, offset + 80)
 
       // 提取 Blowfish 密钥
-      const key = extractBlowfishKey(this.keySource)
+      const key = extractBlowfishKey(this.keySource, encryptedHeader)
       if (!key) {
         console.warn('无法从 key source 提取密钥')
         return false
@@ -66,22 +66,23 @@ export class EncryptedMixParser {
     if (this._info) return this._info
 
     try {
-      // 初始化解密
-      const initialized = await this.initializeDecryption()
+      // 读取头部用于密钥检测
+      const headerOffset = getKeySourceOffset() + 80 // 8 + 80 = 88
+      const encryptedHeader = await this.readSlice(headerOffset, headerOffset + 1024)
+
+      // 初始化解密（传入加密头部用于自动密钥检测）
+      const initialized = await this.initializeDecryption(encryptedHeader)
       if (!initialized) {
         console.warn('解密初始化失败，尝试作为未加密文件解析')
         return null
       }
 
-      // 读取并解密头部
-      const headerOffset = getKeySourceOffset() + 80 // 8 + 80 = 88
-      const encryptedHeader = await this.readSlice(headerOffset, headerOffset + 1024) // 读取前 1KB
-
+      // 解密头部
       if (!this.blowfish) {
         return null
       }
 
-      const decryptedHeader = this.blowfish.decrypt(encryptedHeader)
+      const decryptedHeader = this.blowfish.decrypt(new Uint8Array(encryptedHeader))
 
       // 使用解密后的数据创建 MixParser
       const parser = new MixParser(decryptedHeader)

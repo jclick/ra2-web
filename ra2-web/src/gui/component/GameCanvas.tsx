@@ -43,29 +43,20 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     console.log('[GameCanvas] Initializing game...')
 
     try {
-      // 获取或创建游戏管理器
-      const existingGameManager = engine.getGameManager?.()
-      console.log('[GameCanvas] existingGameManager:', existingGameManager)
+      // 统一只创建一个 GameManager
+      console.log('[GameCanvas] Creating new GameManager')
+      const gameManager = new GameManager({
+        mapName: 'test',
+        maxPlayers: 2,
+        startingUnits: true,
+        crates: false,
+        superWeapons: false,
+        gameMode: 'standard' as any,
+      })
       
-      let gameManager: GameManager
-      
-      if (existingGameManager) {
-        // 使用引擎中的 GameManager
-        gameManager = existingGameManager
-        console.log('[GameCanvas] Using existing GameManager from engine')
-      } else {
-        // 创建新的 GameManager
-        console.log('[GameCanvas] Creating new GameManager')
-        gameManager = new GameManager({
-          mapName: 'test',
-          maxPlayers: 2,
-          startingUnits: true,
-          crates: false,
-          superWeapons: false,
-          gameMode: 'standard' as any,
-        })
-        gameManager.initialize()
-      }
+      // 初始化 GameManager
+      gameManager.initialize()
+      console.log(`[GameCanvas] GameManager initialized, instance ID: ${gameManager.instanceId}`)
       
       gameManagerRef.current = gameManager
       
@@ -95,7 +86,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     } catch (error) {
       console.error('[GameCanvas] Initialization error:', error)
     }
-  }, [engine])
+  }, [])
 
   // 初始化渲染和启动游戏循环 (依赖 canvasRef)
   useEffect(() => {
@@ -130,8 +121,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       console.log('[GameCanvas] Attaching engine to canvas...')
       engine.attachTo(canvasRef.current)
       
-      console.log('[GameCanvas] Setting game manager...')
-      engine.setGameManager?.(gameManager)
+      // 将 GameManager 设置到引擎中（确保只有一个实例）
+      console.log('[GameCanvas] Setting game manager to engine...')
+      engine.setGameManager(gameManager)
       
       console.log('[GameCanvas] Starting engine...')
       engine.start()

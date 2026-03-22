@@ -14,6 +14,10 @@ import { Player, Faction, Vector3, GameConfig, BuildingType } from './types'
  * 游戏管理器 - 协调所有游戏系统
  */
 export class GameManager {
+  // 实例计数器（用于调试双实例问题）
+  private static instanceCount = 0
+  readonly instanceId: number
+
   // 地图
   map: GameMap
 
@@ -72,6 +76,11 @@ export class GameManager {
   private onSelectionChanged?: (units: Unit[]) => void
 
   constructor(config: GameConfig) {
+    // 设置实例 ID（用于调试）
+    GameManager.instanceCount++
+    this.instanceId = GameManager.instanceCount
+    console.log(`[GameManager] Creating instance #${this.instanceId}`)
+    
     this.config = config
     this.map = GameMap.generateTestMap(50)
     this.pathfinder = new Pathfinder(this.map)

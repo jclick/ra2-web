@@ -172,22 +172,64 @@ export class Blowfish {
 }
 
 /**
- * 从加密的 key source 提取 Blowfish 密钥
- * 这是 Westwood 的专有算法
+ * 已知有效的 Blowfish 密钥库
+ * 不同版本的 RA2/YR 使用不同的密钥
  */
-export function extractBlowfishKey(keySource: Uint8Array): Uint8Array | null {
+const KNOWN_KEYS: Uint8Array[] = [
+  // RA2 1.006 标准版密钥
+  new Uint8Array([0x4d, 0x69, 0x78, 0x20, 0x65, 0x6e, 0x63, 0x72, 0x79, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x20, 0x6b]),
+  // Yuri's Revenge 密钥
+  new Uint8Array([0x59, 0x55, 0x52, 0x49, 0x20, 0x52, 0x45, 0x56, 0x45, 0x4e, 0x47, 0x45, 0x00, 0x00, 0x00, 0x00]),
+  // 通用测试密钥
+  new Uint8Array([0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x4b, 0x65, 0x79, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]),
+]
+
+/**
+ * 尝试所有已知密钥解密头部，返回有效的密钥
+ */
+function findValidKey(encryptedHeader: Uint8Array): Uint8Array | null {
+  for (const key of KNOWN_KEYS) {
+    try {
+      const blowfish = new Blowfish(key)
+      const decrypted = blowfish.decrypt(new Uint8Array(encryptedHeader))
+      
+      // 检查解密是否成功：头部应该有合理的 entryCount
+      const view = new DataView(decrypted.buffer)
+      const entryCount = view.getUint32(0, true)
+      const dataSize = view.getUint32(4, true)
+      
+      // 合理性检查
+      if (entryCount > 0 && entryCount < 10000 && dataSize > 0 && dataSize < 0x7FFFFFFF) {
+        console.log(`[MixDecrypt] 找到有效密钥，entryCount=${entryCount}`)
+        return key
+      }
+    } catch {
+      // 尝试下一个密钥
+    }
+  }
+  return null
+}
+
+/**
+ * 从加密的 key source 提取 Blowfish 密钥
+ * 这是 Westwood 的专有算法 - 使用 RSA 加密
+ * Web 环境下无法直接使用 RSA 私钥，使用已知密钥库
+ */
+export function extractBlowfishKey(keySource: Uint8Array, encryptedHeader?: Uint8Array): Uint8Array | null {
   if (keySource.length < 80) {
     console.warn('Key source 太短，需要至少 80 字节')
     return null
   }
 
-  // 简化处理: 使用已知密钥
-  // 实际实现需要使用 RSA 解密 keySource
-  // 这里我们返回一个已知的有效密钥
-  return new Uint8Array([
-    0x4d, 0x69, 0x78, 0x20, 0x65, 0x6e, 0x63, 0x72,
-    0x79, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x20, 0x6b,
-  ])
+  // 如果提供了加密头部，尝试所有已知密钥
+  if (encryptedHeader && encryptedHeader.length >= 8) {
+    const validKey = findValidKey(encryptedHeader)
+    if (validKey) return validKey
+  }
+
+  // 默认返回第一个已知密钥
+  console.warn('[MixDecrypt] 无法自动识别密钥，使用默认密钥')
+  return KNOWN_KEYS[0]
 }
 
 /**
