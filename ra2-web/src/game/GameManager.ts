@@ -160,10 +160,16 @@ export class GameManager {
     position: Vector3,
     ownerId: string
   ): Building | null {
-    const building = BuildingFactory.createBuilding(buildingId, position, this.players.get(ownerId)!)
+    const owner = this.players.get(ownerId)
+    if (!owner) return null
+    
+    const building = BuildingFactory.createBuilding(buildingId, position, owner)
     if (!building) return null
 
     this.buildings.set(building.id, building)
+    
+    // 添加到玩家的建筑列表
+    owner.buildings.push(building)
 
     // 如果是精炼厂，注册到经济系统
     if (building.stats.type === BuildingType.ORE_REFINERY) {

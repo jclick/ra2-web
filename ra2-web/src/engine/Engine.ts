@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { ResourceManager } from './gameRes/ResourceManager'
 import { GameManager } from '../game/GameManager'
 import { Unit } from '../game/objects/Unit'
+import { Building } from '../game/buildings/BuildingSystem'
 import { Vector3, Faction, GameMode } from '../game/types'
 
 /**
@@ -18,6 +19,7 @@ export class GameEngine {
   
   // 渲染相关
   private unitMeshes: Map<string, THREE.Group> = new Map()
+  private buildingMeshes: Map<string, THREE.Mesh> = new Map()
   private selectionIndicators: Map<string, THREE.Mesh> = new Map()
   private mapMesh: THREE.Group | null = null
   
@@ -65,6 +67,8 @@ export class GameEngine {
     this.gameManager.setCallbacks({
       onUnitCreated: (unit) => this.onUnitCreated(unit),
       onUnitDestroyed: (unit) => this.onUnitDestroyed(unit),
+      onBuildingCreated: (building) => this.onBuildingCreated(building),
+      onBuildingDestroyed: (building) => this.onBuildingDestroyed(building),
       onSelectionChanged: (units) => this.onSelectionChanged(units),
     })
     
@@ -75,6 +79,9 @@ export class GameEngine {
     
     // 创建地图
     this.createMap()
+    
+    // 创建初始建筑
+    this.createInitialBuildings()
     
     // 创建初始单位
     this.createInitialUnits()
@@ -346,6 +353,112 @@ export class GameEngine {
   private onSelectionChanged(units: Unit[]): void {
     // 选择变化时的额外处理
     console.log(`选中 ${units.length} 个单位`)
+  }
+
+  /**
+   * 创建初始建筑
+   */
+  private createInitialBuildings(): void {
+    if (!this.scene || !this.gameManager) {
+      console.warn('[Engine] Cannot create buildings: scene or gameManager is null')
+      return
+    }
+
+    const buildings = this.gameManager.getAllBuildings()
+    console.log(`[Engine] Creating ${buildings.length} initial buildings`)
+
+    for (const building of buildings) {
+      this.createBuildingMesh(building)
+    }
+  }
+
+  /**
+   * 创建建筑网格
+   */
+  private createBuildingMesh(building: Building): void {
+    if (!this.scene) return
+
+    // 根据建筑类型选择颜色和大小
+    let color = 0x808080
+    let width = 2
+    let height = 1.5
+    let depth = 2
+
+    switch (building.buildingId) {
+      case 'GAPOWR':
+      case 'NAPOWR':
+        color = 0xffaa00 // 橙色 - 电厂
+        height = 1.5
+        break
+      case 'GAREFN':
+      case 'NAREFN':
+        color = 0x00aaff // 蓝色 - 精炼厂
+        width = 3
+        depth = 3
+        height = 1.2
+        break
+      case 'GAPILE':
+      case 'NAHAND':
+        color = 0x00ff00 // 绿色 - 兵营
+        width = 2.5
+        depth = 2.5
+        height = 1.8
+        break
+      case 'GAWEAP':
+      case 'NAWEAP':
+        color = 0xff0000 // 红色 - 战车工厂
+        width = 4
+        depth = 3
+        height = 2
+        break
+      case 'GACNST':
+      case 'NACNST':
+        color = 0xffff00 // 黄色 - 基地
+        width = 3
+        depth = 3
+        height = 2.5
+        break
+    }
+
+    // 根据阵营调整颜色
+    if (building.faction === Faction.ALLIES) {
+      color = 0x0066CC // 盟军蓝色
+    } else if (building.faction === Faction.SOVIET) {
+      color = 0xCC0000 // 苏联红色
+    }
+
+    const geometry = new THREE.BoxGeometry(width, height, depth)
+    const material = new THREE.MeshLambertMaterial({ color })
+    const mesh = new THREE.Mesh(geometry, material)
+
+    mesh.position.set(building.position.x, height / 2, building.position.z)
+    mesh.castShadow = true
+    mesh.receiveShadow = true
+
+    this.scene.add(mesh)
+    this.buildingMeshes.set(building.id, mesh)
+
+    console.log(`[Engine] Created building mesh: ${building.buildingId} at (${building.position.x}, ${building.position.z})`)
+  }
+
+  /**
+   * 建筑创建回调
+   */
+  private onBuildingCreated(building: Building): void {
+    this.createBuildingMesh(building)
+  }
+
+  /**
+   * 建筑销毁回调
+   */
+  private onBuildingDestroyed(building: Building): void {
+    const mesh = this.buildingMeshes.get(building.id)
+    if (mesh && this.scene) {
+      this.scene.remove(mesh)
+      mesh.geometry.dispose()
+      ;(mesh.material as THREE.Material).dispose()
+    }
+    this.buildingMeshes.delete(building.id)
   }
 
   /**
