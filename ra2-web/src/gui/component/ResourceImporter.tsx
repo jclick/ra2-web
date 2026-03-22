@@ -40,65 +40,107 @@ export const ResourceImporter: React.FC<ResourceImporterProps> = ({
     setProgress(0)
     
     try {
+      let loadedCount = 0
+      let failedCount = 0
+      
       // 尝试加载本地的INI文件
-      const iniFiles = ['rules.ini', 'rulesmd.ini']
+      const iniFiles = [
+        { name: 'rules.ini', path: '/assets/ini/rules.ini' },
+        { name: 'rulesmd.ini', path: '/assets/ini/rulesmd.ini' }
+      ]
       
       for (let i = 0; i < iniFiles.length; i++) {
-        const fileName = iniFiles[i]
-        setStatus(`正在加载: ${fileName}`)
+        const { name, path } = iniFiles[i]
+        setStatus(`正在加载: ${name}`)
         
         try {
-          const response = await fetch(`/assets/ini/${fileName}`)
+          // 添加超时控制
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), 5000) // 5秒超时
+          
+          const response = await fetch(path, { signal: controller.signal })
+          clearTimeout(timeoutId)
+          
           if (response.ok) {
             const blob = await response.blob()
-            const file = new File([blob], fileName, { type: 'text/plain' })
+            const file = new File([blob], name, { type: 'text/plain' })
             await resourceManagerRef.current.importFile(file)
+            loadedCount++
+            console.log(`✓ 加载成功: ${name}`)
+          } else {
+            console.warn(`✗ 文件不存在: ${path}`)
+            failedCount++
           }
         } catch (e) {
-          console.warn(`无法加载 ${fileName}:`, e)
+          console.warn(`✗ 无法加载 ${name}:`, e)
+          failedCount++
         }
         
-        setProgress(((i + 1) / iniFiles.length) * 50)
+        setProgress(((i + 1) / iniFiles.length) * 40)
       }
       
       // 加载调色板
       setStatus('正在加载调色板...')
-      const palFiles = ['unittem.pal', 'unitsno.pal', 'uniturb.pal']
+      const palFiles = [
+        { name: 'unittem.pal', path: '/assets/palettes/unittem.pal' },
+        { name: 'unitsno.pal', path: '/assets/palettes/unitsno.pal' },
+        { name: 'uniturb.pal', path: '/assets/palettes/uniturb.pal' }
+      ]
       
       for (let i = 0; i < palFiles.length; i++) {
-        const fileName = palFiles[i]
+        const { name, path } = palFiles[i]
         
         try {
-          const response = await fetch(`/assets/palettes/${fileName}`)
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), 5000)
+          
+          const response = await fetch(path, { signal: controller.signal })
+          clearTimeout(timeoutId)
+          
           if (response.ok) {
             const blob = await response.blob()
-            const file = new File([blob], fileName, { type: 'application/octet-stream' })
+            const file = new File([blob], name, { type: 'application/octet-stream' })
             await resourceManagerRef.current.importFile(file)
+            loadedCount++
+            console.log(`✓ 加载成功: ${name}`)
+          } else {
+            console.warn(`✗ 文件不存在: ${path}`)
+            failedCount++
           }
         } catch (e) {
-          console.warn(`无法加载 ${fileName}:`, e)
+          console.warn(`✗ 无法加载 ${name}:`, e)
+          failedCount++
         }
         
-        setProgress(50 + ((i + 1) / palFiles.length) * 50)
+        setProgress(40 + ((i + 1) / palFiles.length) * 40)
       }
+      
+      // 即使没有加载任何文件，也允许进入游戏（使用空资源）
+      setProgress(100)
       
       // 更新统计
       const rmStats = resourceManagerRef.current.getStats()
       setStats({
         mixFiles: rmStats.mixFiles,
-        iniFiles: 2,
-        palFiles: 3,
+        iniFiles: rmStats.resources - rmStats.mixFiles - rmStats.palettes - rmStats.shpFiles,
+        palFiles: rmStats.palettes,
         shpFiles: rmStats.shpFiles,
         total: rmStats.resources,
       })
       
+      if (loadedCount === 0) {
+        setStatus('未找到本地资源，将使用默认配置启动')
+        console.warn('所有测试资源加载失败，游戏将使用默认配置')
+      } else {
+        setStatus(`资源加载完成！成功 ${loadedCount} 个，失败 ${failedCount} 个`)
+      }
+      
       setStep('complete')
-      setProgress(100)
-      setStatus('资源加载完成！')
     } catch (error) {
       console.error('加载本地资源失败:', error)
-      setStep('error')
-      setStatus('加载失败: ' + error)
+      // 即使出错也进入完成状态，允许用户继续
+      setStep('complete')
+      setStatus('资源加载遇到问题，但游戏仍可启动')
     }
   }, [])
 
@@ -116,16 +158,20 @@ export const ResourceImporter: React.FC<ResourceImporterProps> = ({
         setProgress((i / selectedFiles.length) * 100)
         
         // 检查文件大小，给出警告
-        if (file.size > 200 * 1024 * 1024) { // 200MB
-          console.warn(`大文件警告: ${file.name} (${(file.size/1024/1024).toFixed(1)}MB)，解析可能需要较长时间`)
+        const sizeMB = file.size / 1024 / 1024
+        if (sizeMB > 200) {
+          console.warn(`大文件警告: ${file.name} (${sizeMB.toFixed(1)}MB)，将使用流式解析`)
+          setStatus(`正在解析大文件: ${file.name} (${sizeMB.toFixed(0)}MB)...`)
         }
         
         try {
           await resourceManagerRef.current.importFile(file)
+          console.log(`✓ 导入成功: ${file.name}`)
         } catch (fileError) {
-          console.error(`导入文件失败: ${file.name}`, fileError)
+          console.error(`✗ 导入文件失败: ${file.name}`, fileError)
           // 继续处理其他文件，不中断整个流程
-          setStatus(`警告: ${file.name} 导入失败，继续处理其他文件...`)
+          const errorMsg = fileError instanceof Error ? fileError.message : String(fileError)
+          setStatus(`警告: ${file.name} 导入失败 (${errorMsg})`)
           await new Promise(resolve => setTimeout(resolve, 1000))
         }
       }

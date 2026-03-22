@@ -49,3 +49,35 @@ node ~/.openclaw/skills/qveris-official/scripts/qveris_tool.mjs call <tool_id> -
 
 ---
 *最后更新: 2026-03-14*
+
+## RA2 Web 游戏项目 (2026-03-22)
+
+**项目仓库**: https://github.com/jclick/ra2-web
+
+### 已实现功能
+- **Stage 1**: 基础引擎、地图系统、单位移动
+- **Stage 2**: 科技树、超级武器、AI系统 ✓ 完成
+- **资源系统**: MIX/SHP/INI 解析器
+- **导入界面**: 3步流程，支持测试资源
+
+### 技术栈
+- TypeScript + React + Three.js
+- Vite 构建工具
+- 支持 WebGL 渲染
+
+### 关键文件位置
+- 项目: `/root/.openclaw/workspace/ra2-web/`
+- 资源: `public/assets/`
+- 文档: `docs/`
+
+### 启动方法
+```bash
+cd /root/.openclaw/workspace/ra2-web
+npm run dev
+# 访问 http://localhost:4000
+```
+
+### 注意事项
+- 大 MIX 文件已做内存优化（按需加载）
+- 无原版资源可用"测试资源"运行
+- 游戏使用占位图形显示单位
