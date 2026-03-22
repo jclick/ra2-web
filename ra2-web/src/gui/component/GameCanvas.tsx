@@ -40,10 +40,18 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
   // 初始化游戏
   useEffect(() => {
-    if (!canvasRef.current) return
+    console.log('[GameCanvas] useEffect triggered, canvasRef:', canvasRef.current)
+    
+    if (!canvasRef.current) {
+      console.error('[GameCanvas] canvasRef is null!')
+      return
+    }
 
     // 获取或创建游戏管理器
-    const gameManager = engine.getGameManager?.() || new GameManager({
+    const existingGameManager = engine.getGameManager?.()
+    console.log('[GameCanvas] existingGameManager:', existingGameManager)
+    
+    const gameManager = existingGameManager || new GameManager({
       mapName: 'test',
       maxPlayers: 2,
       startingUnits: true,
@@ -52,10 +60,16 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       gameMode: 'standard' as any,
     })
     
+    if (!existingGameManager) {
+      console.warn('[GameCanvas] Creating new GameManager because existing is null')
+    }
+    
     gameManagerRef.current = gameManager
     
     // 初始化
+    console.log('[GameCanvas] Initializing gameManager...')
     gameManager.initialize()
+    console.log('[GameCanvas] gameManager initialized')
     
     // 设置回调
     gameManager.setCallbacks({
@@ -71,8 +85,13 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     // 获取玩家
     const player1 = gameManager.getPlayer('player1')
+    console.log('[GameCanvas] player1:', player1)
+    
     if (player1) {
       setPlayer(player1)
+      console.log('[GameCanvas] Player set successfully')
+    } else {
+      console.error('[GameCanvas] Failed to get player1! Players:', gameManager.players)
     }
 
     // 初始化渲染
@@ -197,12 +216,47 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         width: '100vw', 
         height: '100vh', 
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         background: '#000',
         color: '#fff',
+        gap: '20px',
       }}>
-        正在初始化游戏...
+        <div>正在初始化游戏...</div>
+        <div style={{ fontSize: '12px', color: '#888' }}>
+          如果长时间卡住，请打开浏览器控制台(F12)查看错误信息
+        </div>
+        <button 
+          onClick={() => {
+            // 强制创建一个默认玩家
+            const gm = gameManagerRef.current
+            if (gm) {
+              const defaultPlayer: Player = {
+                id: 'player1',
+                name: '玩家',
+                faction: Faction.ALLIES,
+                color: '#0066CC',
+                money: 10000,
+                power: 100,
+                powerDrain: 0,
+                units: [],
+                buildings: [],
+              }
+              gm.players.set('player1', defaultPlayer)
+              setPlayer(defaultPlayer)
+            }
+          }}
+          style={{
+            padding: '10px 20px',
+            background: '#c41e3a',
+            color: '#fff',
+            border: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          强制继续 (调试)
+        </button>
       </div>
     )
   }
