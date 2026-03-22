@@ -1,0 +1,169 @@
+.sound-settings-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.sound-settings-panel {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  border-radius: 16px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 400px;
+  color: #fff;
+}
+
+.sound-settings-panel h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #ffd700;
+}
+
+.warning {
+  background: rgba(255, 193, 7, 0.2);
+  border: 1px solid rgba(255, 193, 7, 0.5);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  color: #ffc107;
+  text-align: center;
+}
+
+.volume-control {
+  margin-bottom: 1.5rem;
+}
+
+.volume-control label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.volume-control input[type="range"] {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.2);
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.volume-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #4169e1;
+  cursor: pointer;
+}
+
+.volume-control input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #4169e1;
+  cursor: pointer;
+  border: none;
+}
+
+.volume-control input:disabled {
+  opacity: 0.5;
+}
+
+.mute-toggle {
+  display: flex;
+  justify-content: center;
+  margin: 1.5rem 0;
+}
+
+.mute-btn {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid currentColor;
+  border-radius: 8px;
+  background: transparent;
+  color: #32cd32;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mute-btn:hover {
+  background: rgba(50, 205, 50, 0.1);
+}
+
+.mute-btn.muted {
+  color: #dc143c;
+}
+
+.mute-btn.muted:hover {
+  background: rgba(220, 20, 60, 0.1);
+}
+
+.test-sounds {
+  margin: 1.5rem 0;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.test-sounds h4 {
+  text-align: center;
+  margin-bottom: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.test-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.test-buttons button {
+  padding: 0.5rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.test-buttons button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.test-buttons button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.settings-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.close-btn {
+  padding: 0.75rem 2rem;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #4169e1 0%, #0000cd 100%);
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(65, 105, 225, 0.4);
+}
