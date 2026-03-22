@@ -82,6 +82,13 @@ export class GameEngine {
    * 初始化Three.js
    */
   private initThreeJS(): void {
+    // 检查 WebGL 支持
+    const canvas = document.createElement('canvas')
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
+    if (!gl) {
+      throw new Error('WebGL 不支持，无法初始化 3D 渲染器')
+    }
+
     // 场景
     this.scene = new THREE.Scene()
     this.scene.background = new THREE.Color(0x1a1a2e)
