@@ -535,21 +535,16 @@ export class GameEngine {
    * 鼠标按下
    */
   private onMouseDown = (e: MouseEvent): void => {
-    console.log('[Engine] Mouse down:', e.button, 'at', e.clientX, e.clientY)
-    
-    if (!this.gameManager) {
-      console.warn('[Engine] No gameManager')
+    if (!this.gameManager || !this.container) {
+      console.warn('[Engine] No gameManager or container')
       return
     }
     
-    const rect = (e.target as HTMLElement).getBoundingClientRect()
+    const rect = this.container.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
     
-    console.log('[Engine] Mouse position in canvas:', x, y)
-    
     const worldPos = this.screenToWorld(x, y)
-    console.log('[Engine] World position:', worldPos)
     
     if (e.button === 0) {
       // 检查是否在建筑放置模式
@@ -615,7 +610,9 @@ export class GameEngine {
    * 鼠标移动
    */
   private onMouseMove = (e: MouseEvent): void => {
-    const rect = (e.target as HTMLElement).getBoundingClientRect()
+    if (!this.container) return
+    
+    const rect = this.container.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
     
@@ -661,9 +658,9 @@ export class GameEngine {
    * 鼠标释放
    */
   private onMouseUp = (e: MouseEvent): void => {
-    if (!this.gameManager) return
+    if (!this.gameManager || !this.container) return
     
-    const rect = (e.target as HTMLElement).getBoundingClientRect()
+    const rect = this.container.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
     
@@ -716,8 +713,13 @@ export class GameEngine {
     if (!this.camera || !this.container) return { x: 0, y: 0, z: 0 }
     
     const rect = this.container.getBoundingClientRect()
-    const ndcX = (screenX / rect.width) * 2 - 1
-    const ndcY = -(screenY / rect.height) * 2 + 1
+    
+    // 计算相对于容器的坐标
+    const relativeX = screenX
+    const relativeY = screenY
+    
+    const ndcX = (relativeX / rect.width) * 2 - 1
+    const ndcY = -(relativeY / rect.height) * 2 + 1
     
     const vector = new THREE.Vector3(ndcX, ndcY, 0.5)
     vector.unproject(this.camera)
