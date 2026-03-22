@@ -119,7 +119,11 @@ export class ResourceManager {
     const slice = file.slice(start, end)
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
-      reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer))
+      reader.onload = () => {
+        const result = reader.result as ArrayBuffer
+        // 创建新的 Uint8Array 确保数据独立
+        resolve(new Uint8Array(result))
+      }
       reader.onerror = () => reject(reader.error)
       reader.readAsArrayBuffer(slice)
     })
