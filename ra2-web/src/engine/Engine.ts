@@ -501,34 +501,35 @@ export class GameEngine {
    * 设置输入事件
    */
   private setupInputEvents(): void {
-    if (!this.renderer) {
-      console.warn('[Engine] Cannot setup input events: renderer is null')
+    if (!this.renderer || !this.container) {
+      console.warn('[Engine] Cannot setup input events: renderer or container is null')
       return
     }
     
     const canvas = this.renderer.domElement
     
-    console.log('[Engine] Setting up input events on canvas:', canvas)
+    console.log('[Engine] Setting up input events on container and canvas')
     
     // 确保 canvas 可以获得焦点
     canvas.tabIndex = 0
     canvas.style.outline = 'none'
     
-    canvas.addEventListener('mousedown', this.onMouseDown)
-    canvas.addEventListener('mousemove', this.onMouseMove)
-    canvas.addEventListener('mouseup', this.onMouseUp)
-    canvas.addEventListener('wheel', this.onWheel, { passive: false })
-    canvas.addEventListener('contextmenu', (e) => e.preventDefault())
+    // 将事件绑定到 container 而不是 canvas，确保整个区域都能接收事件
+    this.container.addEventListener('mousedown', this.onMouseDown)
+    this.container.addEventListener('mousemove', this.onMouseMove)
+    this.container.addEventListener('mouseup', this.onMouseUp)
+    this.container.addEventListener('wheel', this.onWheel, { passive: false })
+    this.container.addEventListener('contextmenu', (e) => e.preventDefault())
     
-    // 添加窗口级别的滚轮事件作为后备
-    window.addEventListener('wheel', (e) => {
-      // 检查事件是否在 canvas 区域内
-      if (this.container && this.container.contains(e.target as Node)) {
-        this.onWheel(e)
-      }
-    }, { passive: false })
+    // 窗口级别事件用于释放时捕获
+    window.addEventListener('mouseup', () => {
+      this.isDragging = false
+      this.isPanning = false
+      this.dragStart = null
+      this.lastMousePos = null
+    })
     
-    console.log('[Engine] Input events setup complete')
+    console.log('[Engine] Input events setup complete on container')
   }
   
   /**
