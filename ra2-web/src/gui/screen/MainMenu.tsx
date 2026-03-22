@@ -3,9 +3,10 @@ import React from 'react'
 interface MainMenuProps {
   onStartGame: () => void
   onStartCampaign: () => void
+  onStartMultiplayer: () => void
 }
 
-export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, onStartCampaign }) => {
+export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, onStartCampaign, onStartMultiplayer }) => {
   return (
     <div 
       className="main-menu"
@@ -92,18 +93,21 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, onStartCampaign
           
           <button 
             className="ra-button"
-            disabled
+            onClick={onStartMultiplayer}
             style={{ 
-              opacity: 0.5,
               fontSize: '1.1rem',
               padding: '15px 30px',
-              background: 'rgba(255,255,255,0.1)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              color: '#888',
+              background: 'linear-gradient(135deg, #228b22 0%, #006400 100%)',
+              border: 'none',
+              color: '#fff',
               borderRadius: 8,
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              boxShadow: '0 4px 15px rgba(34, 139, 34, 0.4)',
+              transition: 'all 0.2s',
             }}
           >
-            多人对战 (开发中)
+            多人对战
           </button>
           
           <button 

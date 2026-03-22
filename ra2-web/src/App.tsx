@@ -5,9 +5,10 @@ import { ResourceImporter } from './gui/component/ResourceImporter'
 import { LoadingScreen } from './gui/component/LoadingScreen'
 import { MainMenu } from './gui/screen/MainMenu'
 import { CampaignScreen, CampaignConfig } from './gui/screen/CampaignScreen'
+import { MultiplayerScreen } from './gui/screen/MultiplayerScreen'
 import { GameCanvas } from './gui/component/GameCanvas'
 
-type AppState = 'menu' | 'campaign' | 'loading' | 'game' | 'import'
+type AppState = 'menu' | 'campaign' | 'multiplayer' | 'loading' | 'game' | 'import'
 
 function App() {
   const [appState, setAppState] = useState<AppState>('menu')
@@ -46,6 +47,10 @@ function App() {
     setAppState('campaign')
   }, [])
 
+  const handleStartMultiplayer = useCallback(() => {
+    setAppState('multiplayer')
+  }, [])
+
   const handleCampaignComplete = useCallback((config: CampaignConfig) => {
     setCampaignConfig(config)
     setAppState('import')
@@ -65,6 +70,7 @@ function App() {
         <MainMenu 
           onStartGame={handleStartGame}
           onStartCampaign={handleStartCampaign}
+          onStartMultiplayer={handleStartMultiplayer}
         />
       )}
 
@@ -72,6 +78,13 @@ function App() {
         <CampaignScreen
           onStartCampaign={handleCampaignComplete}
           onCancel={() => setAppState('menu')}
+        />
+      )}
+
+      {appState === 'multiplayer' && (
+        <MultiplayerScreen
+          onBack={() => setAppState('menu')}
+          onStartGame={() => setAppState('import')}
         />
       )}
 
