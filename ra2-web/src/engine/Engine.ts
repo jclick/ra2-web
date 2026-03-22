@@ -141,6 +141,8 @@ export class GameEngine {
     this.camera.lookAt(this.cameraTarget)
     this.camera.zoom = 1
     this.camera.updateProjectionMatrix()
+    
+    console.log(`[Engine] Camera pos: ${this.camera.position.x.toFixed(1)}, ${this.camera.position.y.toFixed(1)}, ${this.camera.position.z.toFixed(1)}, target: ${this.cameraTarget.x.toFixed(1)}, ${this.cameraTarget.y.toFixed(1)}, ${this.cameraTarget.z.toFixed(1)}`)
   }
   
   /**
@@ -212,9 +214,15 @@ export class GameEngine {
    * 创建初始单位
    */
   private createInitialUnits(): void {
-    if (!this.scene || !this.gameManager) return
+    if (!this.scene || !this.gameManager) {
+      console.warn('[Engine] Cannot create units: scene or gameManager is null')
+      return
+    }
     
-    for (const unit of this.gameManager.getAllUnits()) {
+    const units = this.gameManager.getAllUnits()
+    console.log(`[Engine] Creating ${units.length} initial units`)
+    
+    for (const unit of units) {
       this.createUnitMesh(unit)
     }
   }
@@ -669,14 +677,21 @@ export class GameEngine {
    * 设置游戏管理器（用于外部传入）
    */
   setGameManager(gameManager: GameManager): void {
-    // 如果是同一个 GameManager，只需更新回调
+    // 如果是同一个 GameManager，只需更新回调，但仍需确保场景已创建
     if (this.gameManager === gameManager) {
-      console.log('[Engine] Same GameManager, updating callbacks only')
+      console.log('[Engine] Same GameManager, updating callbacks and ensuring scene')
       this.gameManager.setCallbacks({
         onUnitCreated: (unit) => this.onUnitCreated(unit),
         onUnitDestroyed: (unit) => this.onUnitDestroyed(unit),
         onSelectionChanged: (units) => this.onSelectionChanged(units),
       })
+      
+      // 如果场景已准备好但地图还没创建，创建它们
+      if (this.scene && !this.mapMesh) {
+        console.log('[Engine] Scene ready but no map, creating map and units')
+        this.createMap()
+        this.createInitialUnits()
+      }
       return
     }
     

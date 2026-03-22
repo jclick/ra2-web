@@ -322,6 +322,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           bottom: 0,
           background: '#1a0a2e',
           zIndex: 1,
+          border: '2px solid red', // 调试用边框
         }}
       />
 
