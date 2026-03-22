@@ -47,77 +47,82 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       return
     }
 
-    // 获取或创建游戏管理器
-    const existingGameManager = engine.getGameManager?.()
-    console.log('[GameCanvas] existingGameManager:', existingGameManager)
-    
-    const gameManager = existingGameManager || new GameManager({
-      mapName: 'test',
-      maxPlayers: 2,
-      startingUnits: true,
-      crates: false,
-      superWeapons: false,
-      gameMode: 'standard' as any,
-    })
-    
-    if (!existingGameManager) {
-      console.warn('[GameCanvas] Creating new GameManager because existing is null')
-    }
-    
-    gameManagerRef.current = gameManager
-    
-    // 初始化
-    console.log('[GameCanvas] Initializing gameManager...')
-    gameManager.initialize()
-    console.log('[GameCanvas] gameManager initialized')
-    
-    // 设置回调
-    gameManager.setCallbacks({
-      onSelectionChanged: (units) => {
-        setSelectedUnits(units)
-        setSelectedBuilding(gameManager.getSelectedBuilding())
-      },
-      onBuildingCreated: () => updateGameState(),
-      onBuildingDestroyed: () => updateGameState(),
-      onUnitCreated: () => updateGameState(),
-      onUnitDestroyed: () => updateGameState(),
-    })
-
-    // 获取玩家
-    const player1 = gameManager.getPlayer('player1')
-    console.log('[GameCanvas] player1:', player1)
-    
-    if (player1) {
-      setPlayer(player1)
-      console.log('[GameCanvas] Player set successfully')
-    } else {
-      console.error('[GameCanvas] Failed to get player1! Players:', gameManager.players)
-    }
-
-    // 初始化渲染
-    engine.attachTo(canvasRef.current)
-    engine.setGameManager?.(gameManager)
-    engine.start()
-
-    // 游戏主循环
-    const gameLoop = () => {
-      const deltaTime = 16.67 // 约60fps
-      gameManager.update(deltaTime)
+    try {
+      // 获取或创建游戏管理器
+      const existingGameManager = engine.getGameManager?.()
+      console.log('[GameCanvas] existingGameManager:', existingGameManager)
       
-      // 更新状态（节流，每10帧更新一次）
-      if (Math.floor(gameManager.gameTime / 100) % 6 === 0) {
-        updateGameState()
+      const gameManager = existingGameManager || new GameManager({
+        mapName: 'test',
+        maxPlayers: 2,
+        startingUnits: true,
+        crates: false,
+        superWeapons: false,
+        gameMode: 'standard' as any,
+      })
+      
+      if (!existingGameManager) {
+        console.warn('[GameCanvas] Creating new GameManager because existing is null')
       }
       
-      setGameTime(gameManager.gameTime)
-      animationFrameRef.current = requestAnimationFrame(gameLoop)
-    }
-    
-    animationFrameRef.current = requestAnimationFrame(gameLoop)
+      gameManagerRef.current = gameManager
+      
+      // 初始化
+      console.log('[GameCanvas] Initializing gameManager...')
+      gameManager.initialize()
+      console.log('[GameCanvas] gameManager initialized, players:', gameManager.players)
+      
+      // 设置回调
+      gameManager.setCallbacks({
+        onSelectionChanged: (units) => {
+          setSelectedUnits(units)
+          setSelectedBuilding(gameManager.getSelectedBuilding())
+        },
+        onBuildingCreated: () => updateGameState(),
+        onBuildingDestroyed: () => updateGameState(),
+        onUnitCreated: () => updateGameState(),
+        onUnitDestroyed: () => updateGameState(),
+      })
 
-    return () => {
-      cancelAnimationFrame(animationFrameRef.current)
-      engine.stop()
+      // 获取玩家
+      const player1 = gameManager.getPlayer('player1')
+      console.log('[GameCanvas] player1:', player1)
+      
+      if (player1) {
+        setPlayer(player1)
+        console.log('[GameCanvas] Player set successfully')
+      } else {
+        console.error('[GameCanvas] Failed to get player1! Players:', gameManager.players)
+      }
+
+      // 初始化渲染
+      engine.attachTo(canvasRef.current)
+      engine.setGameManager?.(gameManager)
+      engine.start()
+      console.log('[GameCanvas] Engine started')
+
+      // 游戏主循环
+      const gameLoop = () => {
+        const deltaTime = 16.67 // 约60fps
+        gameManager.update(deltaTime)
+        
+        // 更新状态（节流，每10帧更新一次）
+        if (Math.floor(gameManager.gameTime / 100) % 6 === 0) {
+          updateGameState()
+        }
+        
+        setGameTime(gameManager.gameTime)
+        animationFrameRef.current = requestAnimationFrame(gameLoop)
+      }
+      
+      animationFrameRef.current = requestAnimationFrame(gameLoop)
+
+      return () => {
+        cancelAnimationFrame(animationFrameRef.current)
+        engine.stop()
+      }
+    } catch (error) {
+      console.error('[GameCanvas] Initialization error:', error)
     }
   }, [engine])
 
