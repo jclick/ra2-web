@@ -1,5 +1,6 @@
 import { Faction, BuildCategory, ProducibleItem } from '../types'
 import { Player } from '../types'
+import { Building } from '../buildings/BuildingSystem'
 
 /**
  * 科技树节点
@@ -431,12 +432,10 @@ export class TechTree {
     }
     
     // 检查前置建筑
-    for (const _ of node.requiredBuildings) {
-      // 检查玩家是否已有对应建筑ID
-      const hasBuilding = player.buildings.some(() => {
-        // 简化检查：直接比较建筑ID
-        // 实际应该通过类型判断
-        return false // 简化处理
+    for (const requiredBuildingId of node.requiredBuildings) {
+      // 检查玩家是否已有对应建筑
+      const hasBuilding = player.buildings.some((building) => {
+        return (building as unknown as Building).buildingId === requiredBuildingId
       })
       
       if (!hasBuilding) {

@@ -46,6 +46,7 @@ export interface BuildingStats {
  */
 export class Building {
   id: string
+  buildingId: string  // 建筑类型ID，如 'GAPOWR', 'NAPOWR'
   type: BuildingType
   stats: BuildingStats
   owner: Player
@@ -81,12 +82,14 @@ export class Building {
   
   constructor(
     id: string,
+    buildingId: string,
     type: BuildingType,
     stats: BuildingStats,
     position: Vector3,
     owner: Player
   ) {
     this.id = id
+    this.buildingId = buildingId
     this.type = type
     this.stats = stats
     this.position = position
@@ -618,7 +621,7 @@ export class BuildingFactory {
     if (!stats) return null
     
     const id = `${buildingId}_${++this.idCounter}_${Date.now()}`
-    return new Building(id, stats.type, stats, position, owner)
+    return new Building(id, buildingId, stats.type, stats, position, owner)
   }
   
   /**
