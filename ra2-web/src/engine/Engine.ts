@@ -334,24 +334,38 @@ export class GameEngine {
   attachTo(container: HTMLElement): void {
     this.container = container
     if (this.renderer) {
-      container.appendChild(this.renderer.domElement)
+      const canvas = this.renderer.domElement
+      
+      // 设置canvas样式确保正确显示
+      canvas.style.display = 'block'
+      canvas.style.width = '100%'
+      canvas.style.height = '100%'
+      
+      container.appendChild(canvas)
       
       // 根据容器大小调整渲染器
       const width = container.clientWidth
       const height = container.clientHeight
-      this.renderer.setSize(width, height)
       
-      // 更新相机比例
-      if (this.camera) {
-        const aspect = width / height
-        this.camera.left = -this.cameraZoom * aspect
-        this.camera.right = this.cameraZoom * aspect
-        this.camera.top = this.cameraZoom
-        this.camera.bottom = -this.cameraZoom
-        this.camera.updateProjectionMatrix()
+      console.log(`[Engine] Container dimensions: ${width}x${height}`)
+      
+      if (width > 0 && height > 0) {
+        this.renderer.setSize(width, height, false) // false = don't update canvas style
+        
+        // 更新相机比例
+        if (this.camera) {
+          const aspect = width / height
+          this.camera.left = -this.cameraZoom * aspect
+          this.camera.right = this.cameraZoom * aspect
+          this.camera.top = this.cameraZoom
+          this.camera.bottom = -this.cameraZoom
+          this.camera.updateProjectionMatrix()
+        }
+        
+        console.log(`[Engine] Renderer resized to: ${width}x${height}`)
+      } else {
+        console.warn('[Engine] Container has zero size, using default dimensions')
       }
-      
-      console.log(`[Engine] Attached to container: ${width}x${height}`)
     }
     
     // 设置输入事件
@@ -489,10 +503,11 @@ export class GameEngine {
    * 屏幕坐标转世界坐标
    */
   private screenToWorld(screenX: number, screenY: number): Vector3 {
-    if (!this.camera) return { x: 0, y: 0, z: 0 }
+    if (!this.camera || !this.container) return { x: 0, y: 0, z: 0 }
     
-    const ndcX = (screenX / window.innerWidth) * 2 - 1
-    const ndcY = -(screenY / window.innerHeight) * 2 + 1
+    const rect = this.container.getBoundingClientRect()
+    const ndcX = (screenX / rect.width) * 2 - 1
+    const ndcY = -(screenY / rect.height) * 2 + 1
     
     const vector = new THREE.Vector3(ndcX, ndcY, 0.5)
     vector.unproject(this.camera)
@@ -531,6 +546,7 @@ export class GameEngine {
     if (this.isRunning) return
     this.isRunning = true
     this.lastTime = performance.now()
+    console.log('[Engine] Starting game loop...')
     this.gameLoop()
   }
 
@@ -653,6 +669,17 @@ export class GameEngine {
    * 设置游戏管理器（用于外部传入）
    */
   setGameManager(gameManager: GameManager): void {
+    // 如果是同一个 GameManager，只需更新回调
+    if (this.gameManager === gameManager) {
+      console.log('[Engine] Same GameManager, updating callbacks only')
+      this.gameManager.setCallbacks({
+        onUnitCreated: (unit) => this.onUnitCreated(unit),
+        onUnitDestroyed: (unit) => this.onUnitDestroyed(unit),
+        onSelectionChanged: (units) => this.onSelectionChanged(units),
+      })
+      return
+    }
+    
     this.gameManager = gameManager
     
     // 设置回调
