@@ -127,22 +127,29 @@ export class GameEngine {
   }
   
   /**
-   * 更新相机位置
+   * 更新相机位置和视锥体（用于正交相机的缩放）
    */
   private updateCameraPosition(): void {
     if (!this.camera) return
     
-    const offset = this.cameraZoom
+    // 正交相机的缩放通过调整视锥体大小实现
+    const aspect = window.innerWidth / window.innerHeight
+    this.camera.left = -this.cameraZoom * aspect
+    this.camera.right = this.cameraZoom * aspect
+    this.camera.top = this.cameraZoom
+    this.camera.bottom = -this.cameraZoom
+    
+    // 保持相机位置相对于目标点的偏移
+    const offset = this.cameraZoom * 0.8 // 调整视角高度
     this.camera.position.set(
       this.cameraTarget.x + offset,
       this.cameraTarget.y + offset,
       this.cameraTarget.z + offset
     )
     this.camera.lookAt(this.cameraTarget)
-    this.camera.zoom = 1
     this.camera.updateProjectionMatrix()
     
-    console.log(`[Engine] Camera pos: ${this.camera.position.x.toFixed(1)}, ${this.camera.position.y.toFixed(1)}, ${this.camera.position.z.toFixed(1)}, target: ${this.cameraTarget.x.toFixed(1)}, ${this.cameraTarget.y.toFixed(1)}, ${this.cameraTarget.z.toFixed(1)}`)
+    console.log(`[Engine] Camera zoom: ${this.cameraZoom.toFixed(1)}, pos: ${this.camera.position.x.toFixed(1)}, ${this.camera.position.y.toFixed(1)}, ${this.camera.position.z.toFixed(1)}`)
   }
   
   /**
