@@ -5,6 +5,7 @@
  */
 
 import { MixParser, MixFileInfo, MixEntry } from '../../data/parser/MixParser'
+import { EncryptedMixParser } from '../../data/parser/EncryptedMixParser'
 import { ShpParser, ShpFileInfo } from '../../data/parser/ShpParser'
 import { IniParser } from '../../data/parser/IniParser'
 
@@ -45,6 +46,7 @@ export interface MixContainer {
   info: MixFileInfo
   file: File  // 保存File引用，使用slice按需读取
   entries: Map<number, MixEntry>  // ID -> Entry 映射
+  encryptedParser?: any  // 加密解析器（如果是加密文件）
 }
 
 /**
@@ -228,8 +230,38 @@ export class ResourceManager {
         const parser = new MixParser(indexData)
         info = parser.parse()
       } catch (parseError) {
-        console.warn(`[MIX] ${file.name}: 解析索引失败，可能是加密或不支持的格式`, parseError)
-        // 创建一个空容器，标记为不支持的格式
+        console.warn(`[MIX] ${file.name}: 标准解析失败，尝试解密解析...`, parseError)
+        
+        // 尝试使用加密解析器
+        try {
+          const encryptedParser = new EncryptedMixParser(file)
+          const encryptedInfo = await encryptedParser.parse()
+          if (encryptedInfo) {
+            console.log(`[MIX] ${file.name}: 加密解析成功，entryCount=${encryptedInfo.entryCount}`)
+            // 构建 entries 映射
+            const entries = new Map<number, MixEntry>()
+            for (const entry of encryptedInfo.entries) {
+              entries.set(entry.id, entry)
+            }
+            
+            // 保存加密容器
+            const container: MixContainer = {
+              name: file.name,
+              info: encryptedInfo,
+              file,
+              entries,
+              encryptedParser, // 保存解析器用于后续提取
+            }
+            
+            this.mixFiles.set(file.name, container)
+            this.notifyLoading(100, `${file.name} 解析完成 (加密)，包含 ${encryptedInfo.entryCount} 个文件`)
+            return
+          }
+        } catch (decryptError) {
+          console.warn(`[MIX] ${file.name}: 解密解析也失败`, decryptError)
+        }
+        
+        // 所有解析方式都失败，创建空容器
         const container: MixContainer = {
           name: file.name,
           info: {
@@ -238,7 +270,7 @@ export class ResourceManager {
             dataSize: 0,
             entries: [],
             hasChecksum: (firstWord & MIX_FLAG_CHECKSUM) !== 0,
-            isEncrypted: true, // 标记为加密/不支持
+            isEncrypted: true,
           },
           file,
           entries: new Map(),
@@ -317,6 +349,12 @@ export class ResourceManager {
     if (!entry) return null
     
     try {
+      // 如果是加密文件，使用加密解析器
+      if (container.encryptedParser) {
+        return await container.encryptedParser.extractFile(entry)
+      }
+      
+      // 普通文件直接读取
       return await this.readFileSlice(container.file, entry.offset, entry.offset + entry.size)
     } catch (e) {
       console.error(`提取文件失败: ${mixName}:${fileId.toString(16)}`, e)
